@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ngrok Configuration Checker - SocialInsight</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-50 via-white to-blue-50 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 shadow-lg mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                🌐 ngrok Configuration Checker
+            </h1>
+            <p class="text-gray-600">
+                Verify your ngrok setup is correct before testing TikTok OAuth
+            </p>
+        </div>
+
+        <!-- Current URL Check -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                </svg>
+                Step 1: Current URL Check
+            </h2>
+            
+            <div id="currentUrlCheck" class="space-y-3">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Expected Configuration -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Step 2: Expected Configuration
+            </h2>
+
+            <div class="space-y-4">
+                <!-- TikTok Portal -->
+                <div class="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+                    <h3 class="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+                        </svg>
+                        TikTok Developer Portal
+                    </h3>
+                    <p class="text-sm text-purple-800 mb-2">Redirect URI must be:</p>
+                    <code id="tiktokRedirectUri" class="block bg-white px-3 py-2 rounded text-purple-900 text-sm font-mono break-all border border-purple-300">
+                        Loading...
+                    </code>
+                </div>
+
+                <!-- .env File -->
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                    <h3 class="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
+                        </svg>
+                        .env File Configuration
+                    </h3>
+                    <p class="text-sm text-blue-800 mb-2">Your .env should have:</p>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="text-xs text-blue-700 font-semibold">APP_URL</label>
+                            <code id="envAppUrl" class="block bg-white px-3 py-2 rounded text-blue-900 text-sm font-mono break-all border border-blue-300">
+                                Loading...
+                            </code>
+                        </div>
+                        <div>
+                            <label class="text-xs text-blue-700 font-semibold">TIKTOK_REDIRECT_URI</label>
+                            <code id="envRedirectUri" class="block bg-white px-3 py-2 rounded text-blue-900 text-sm font-mono break-all border border-blue-300">
+                                Loading...
+                            </code>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Browser URL -->
+                <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                    <h3 class="font-semibold text-green-900 mb-2 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
+                        </svg>
+                        Browser Test URL
+                    </h3>
+                    <p class="text-sm text-green-800 mb-2">Test your app at:</p>
+                    <a id="browserTestUrl" href="#" target="_blank" class="block bg-white px-3 py-2 rounded text-green-900 text-sm font-mono break-all border border-green-300 hover:bg-green-100 transition">
+                        Loading...
+                    </a>
+                    <p class="text-xs text-green-700 mt-2">
+                        ⚠️ DO NOT use localhost anymore! Use the ngrok URL above.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Validation Status -->
+        <div id="validationStatus" class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                Step 3: Validation Status
+            </h2>
+
+            <div id="validationResults" class="space-y-3">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl shadow-xl p-6 text-white">
+            <h2 class="text-xl font-bold mb-4">🚀 Quick Actions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="https://developers.tiktok.com/" target="_blank" 
+                   class="bg-white/20 hover:bg-white/30 backdrop-blur rounded-xl p-4 text-center transition">
+                    <div class="text-2xl mb-2">🔧</div>
+                    <div class="font-semibold mb-1">TikTok Developer Portal</div>
+                    <div class="text-sm opacity-90">Update Redirect URI</div>
+                </a>
+                <a href="/" 
+                   class="bg-white/20 hover:bg-white/30 backdrop-blur rounded-xl p-4 text-center transition">
+                    <div class="text-2xl mb-2">🏠</div>
+                    <div class="font-semibold mb-1">Back to Homepage</div>
+                    <div class="text-sm opacity-90">Test TikTok OAuth</div>
+                </a>
+                <button onclick="location.reload()" 
+                        class="bg-white/20 hover:bg-white/30 backdrop-blur rounded-xl p-4 text-center transition">
+                    <div class="text-2xl mb-2">🔄</div>
+                    <div class="font-semibold mb-1">Refresh Check</div>
+                    <div class="text-sm opacity-90">Re-validate configuration</div>
+                </button>
+                <a href="http://127.0.0.1:4040" target="_blank" 
+                   class="bg-white/20 hover:bg-white/30 backdrop-blur rounded-xl p-4 text-center transition">
+                    <div class="text-2xl mb-2">📊</div>
+                    <div class="font-semibold mb-1">ngrok Dashboard</div>
+                    <div class="text-sm opacity-90">Monitor requests</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-6 text-gray-600 text-sm">
+            <p>Need help? Check <strong>NGROK_SETUP_GUIDE.md</strong> for full documentation</p>
+        </div>
+    </div>
+
+    <script>
+        // Get current URL info
+        const currentUrl = window.location.origin;
+        const isLocalhost = currentUrl.includes('localhost') || currentUrl.includes('127.0.0.1');
+        const isNgrok = currentUrl.includes('ngrok');
+
+        // Update Current URL Check
+        const currentUrlCheck = document.getElementById('currentUrlCheck');
+        currentUrlCheck.innerHTML = `
+            <div class="flex items-start gap-3 p-4 rounded-lg ${isNgrok ? 'bg-green-50 border-2 border-green-300' : 'bg-red-50 border-2 border-red-300'}">
+                <svg class="w-6 h-6 ${isNgrok ? 'text-green-600' : 'text-red-600'} flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    ${isNgrok 
+                        ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>'
+                        : '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>'
+                    }
+                </svg>
+                <div class="flex-1">
+                    <h3 class="font-semibold ${isNgrok ? 'text-green-900' : 'text-red-900'} mb-1">
+                        ${isNgrok ? '✅ Using ngrok URL' : '❌ Using localhost'}
+                    </h3>
+                    <code class="block bg-white px-3 py-2 rounded ${isNgrok ? 'text-green-900 border border-green-300' : 'text-red-900 border border-red-300'} text-sm font-mono break-all">
+                        ${currentUrl}
+                    </code>
+                    ${isLocalhost ? `
+                        <div class="mt-3 p-3 bg-red-100 rounded-lg border border-red-300">
+                            <p class="text-red-900 font-semibold text-sm mb-1">⚠️ PROBLEM DETECTED!</p>
+                            <p class="text-red-800 text-xs">
+                                You're accessing via localhost. TikTok OAuth will NOT work!<br>
+                                <strong>Solution:</strong> Access this page via your ngrok URL instead.
+                            </p>
+                        </div>
+                    ` : ''}
+                    ${isNgrok ? `
+                        <div class="mt-3 p-3 bg-green-100 rounded-lg border border-green-300">
+                            <p class="text-green-900 font-semibold text-sm mb-1">✅ CORRECT!</p>
+                            <p class="text-green-800 text-xs">
+                                You're using ngrok. TikTok can now communicate with your app!
+                            </p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+
+        // Update expected configuration
+        const redirectUri = `${currentUrl}/auth/tiktok/callback`;
+        document.getElementById('tiktokRedirectUri').textContent = redirectUri;
+        document.getElementById('envAppUrl').textContent = currentUrl;
+        document.getElementById('envRedirectUri').textContent = redirectUri;
+        
+        const browserTestLink = document.getElementById('browserTestUrl');
+        browserTestLink.href = currentUrl;
+        browserTestLink.textContent = currentUrl;
+
+        // Validation checks
+        const checks = [
+            {
+                name: 'URL Type',
+                status: isNgrok ? 'pass' : 'fail',
+                message: isNgrok 
+                    ? 'Using ngrok URL (correct)' 
+                    : 'Using localhost (TikTok cannot access this)',
+                solution: isNgrok ? null : 'Access this page via your ngrok URL'
+            },
+            {
+                name: 'HTTPS Protocol',
+                status: currentUrl.startsWith('https') ? 'pass' : 'fail',
+                message: currentUrl.startsWith('https') 
+                    ? 'Using HTTPS (required by TikTok)' 
+                    : 'Using HTTP (TikTok requires HTTPS)',
+                solution: currentUrl.startsWith('https') ? null : 'ngrok provides HTTPS automatically'
+            },
+            {
+                name: 'Redirect URI Format',
+                status: redirectUri.endsWith('/auth/tiktok/callback') ? 'pass' : 'warning',
+                message: redirectUri.endsWith('/auth/tiktok/callback')
+                    ? 'Correct callback path format'
+                    : 'Check callback path',
+                solution: null
+            }
+        ];
+
+        // Render validation results
+        const validationResults = document.getElementById('validationResults');
+        validationResults.innerHTML = checks.map(check => {
+            const colors = {
+                pass: { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-900', icon: 'text-green-600' },
+                fail: { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-900', icon: 'text-red-600' },
+                warning: { bg: 'bg-yellow-50', border: 'border-yellow-300', text: 'text-yellow-900', icon: 'text-yellow-600' }
+            };
+            const color = colors[check.status];
+            const icon = check.status === 'pass' 
+                ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>'
+                : check.status === 'fail'
+                ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>'
+                : '<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>';
+
+            return `
+                <div class="flex items-start gap-3 p-4 rounded-lg ${color.bg} border-2 ${color.border}">
+                    <svg class="w-6 h-6 ${color.icon} flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        ${icon}
+                    </svg>
+                    <div class="flex-1">
+                        <h3 class="font-semibold ${color.text} mb-1">${check.name}</h3>
+                        <p class="${color.text} text-sm">${check.message}</p>
+                        ${check.solution ? `
+                            <div class="mt-2 p-2 bg-white rounded border ${color.border}">
+                                <p class="text-xs ${color.text}">
+                                    <strong>Solution:</strong> ${check.solution}
+                                </p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Overall status banner
+        const allPassed = checks.every(c => c.status === 'pass');
+        if (allPassed) {
+            validationResults.insertAdjacentHTML('beforebegin', `
+                <div class="mb-4 p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-xl text-white">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-lg">✅ All Checks Passed!</h3>
+                            <p class="text-sm opacity-90">Your ngrok configuration is correct. You can now test TikTok OAuth!</p>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+    </script>
+</body>
+</html>
