@@ -153,29 +153,43 @@
     </div>
     @endif
 
-    <!-- Personalized Notes -->
-    @if(isset($aiInsights['personalized_notes']) && $aiInsights['personalized_notes'])
-    <div class="mb-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
-      <h4 class="font-bold text-lg text-gray-800 mb-4">🎵 Personalized Notes - {{ $aiInsights['personalized_notes']['category'] ?? 'General' }}</h4>
-      
-      @if(isset($aiInsights['personalized_notes']['notes']))
+    <!-- Key Drivers of Trend -->
+    @if(isset($aiInsights['key_drivers']) && count($aiInsights['key_drivers']) > 0)
+    <div class="mb-8 p-6 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl border border-teal-200">
+      <h4 class="font-bold text-lg text-gray-800 mb-4">🚀 Key Drivers of Trend</h4>
       <div class="space-y-4">
-        @foreach($aiInsights['personalized_notes']['notes'] as $noteKey => $note)
-        <div class="bg-white p-4 rounded-lg border border-gray-200">
-          <div class="flex items-start">
-            <span class="text-2xl mr-3">{{ $note['icon'] ?? '💡' }}</span>
-            <div class="flex-1">
-              <h5 class="font-semibold text-gray-800 mb-1">{{ $note['title'] ?? '' }}</h5>
-              @if(isset($note['value']))
-              <p class="text-sm text-blue-600 font-medium mb-1">{{ $note['value'] }}</p>
-              @endif
-              <p class="text-sm text-gray-600">{{ $note['explanation'] ?? '' }}</p>
-            </div>
+        @foreach($aiInsights['key_drivers'] as $driver)
+        <div class="flex items-start p-4 bg-white rounded-lg border border-gray-200">
+          <span class="text-2xl mr-4">{{ $driver['icon'] ?? '💡' }}</span>
+          <div>
+            <h5 class="font-semibold text-gray-800">{{ $driver['driver'] ?? '' }}</h5>
+            <p class="text-sm text-gray-600">{{ $driver['explanation'] ?? '' }}</p>
           </div>
         </div>
         @endforeach
       </div>
-      @endif
+    </div>
+    @endif
+
+    <!-- Personalized Notes -->
+    @if(isset($aiInsights['personalized_notes']) && !empty($aiInsights['personalized_notes']['notes']))
+    <div class="mb-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
+        <h4 class="font-bold text-lg text-gray-800 mb-4">
+            <span class="text-2xl mr-2">{{ $aiInsights['personalized_notes']['icon'] ?? '💡' }}</span>
+            Personalized Notes - {{ $aiInsights['personalized_notes']['category'] ?? 'General' }}
+        </h4>
+        <div class="grid md:grid-cols-2 gap-4">
+            @foreach($aiInsights['personalized_notes']['notes'] as $note)
+            <div class="bg-white p-4 rounded-lg border border-gray-200 flex items-start">
+                <span class="text-2xl mr-4">{{ $note['icon'] ?? '💡' }}</span>
+                <div class="flex-1">
+                    <h5 class="font-semibold text-gray-800">{{ $note['title'] ?? '' }}</h5>
+                    <p class="text-sm text-blue-600 font-medium mb-1">{{ $note['value'] ?? '' }}</p>
+                    <p class="text-xs text-gray-600">{{ $note['explanation'] ?? '' }}</p>
+                </div>
+            </div>
+            @endforeach
+        </div>
     </div>
     @endif
 

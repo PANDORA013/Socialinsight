@@ -64,145 +64,139 @@ class TrendController extends Controller
 
         $topic = $request->input('topic');
 
-        try {
-            // === STEP 1: Fetch raw data from all platforms ===
-            
-            // YouTube: Always use REAL API (if key available)
-            $youtubePosts = $this->youtubeService->search($topic, 10);
-            
-            // Twitter: Use API if available
-            $twitterPosts = $this->twitterService->search($topic, 10);
-            
-            // TikTok: Check if user logged in via OAuth
-            $tiktokConnected = session('tiktok_connected', false);
-            $tiktokPosts = $this->tiktokService->search($topic, 10);
-            
-            // Instagram: Mock data for now
-            $instagramPosts = $this->instagramService->search($topic, 10);
+        // === STEP 1: Fetch raw data from all platforms ===
+        
+        // YouTube: Always use REAL API (if key available)
+        $youtubePosts = $this->youtubeService->search($topic, 10);
+        
+        // Twitter: Use API if available
+        $twitterPosts = $this->twitterService->search($topic, 10);
+        
+        // TikTok: Check if user logged in via OAuth
+        $tiktokConnected = session('tiktok_connected', false);
+        $tiktokPosts = $this->tiktokService->search($topic, 10);
+        
+        // Instagram: Mock data for now
+        $instagramPosts = $this->instagramService->search($topic, 10);
 
-            // Combine all posts
-            $allRawPosts = array_merge($youtubePosts, $twitterPosts, $tiktokPosts, $instagramPosts);
-            
-            // === STEP 2: Apply 5-stage filtering ===
-            $filteredResult = $this->filteringService->processData($allRawPosts, $topic);
-            $filteredPosts = $filteredResult['data'];
-            $filteringStats = $filteredResult['stats'];
+        // Combine all posts
+        $allRawPosts = array_merge($youtubePosts, $twitterPosts, $tiktokPosts, $instagramPosts);
+        
+        // === STEP 2: Apply 5-stage filtering ===
+        $filteredResult = $this->filteringService->processData($allRawPosts, $topic);
+        $filteredPosts = $filteredResult['data'];
+        $filteringStats = $filteredResult['stats'];
 
-            // === STEP 3: Apply Naive Bayes sentiment analysis ===
-            $sentimentAnalysis = $this->naiveBayesService->analyzeSentimentDistribution($filteredPosts);
-            
-            // Update posts with NB sentiment
-            foreach ($filteredPosts as &$post) {
-                $result = $this->naiveBayesService->classify($post['content']);
-                $post['sentiment'] = $result['sentiment'];
-                $post['sentiment_score'] = $result['score'];
-                $post['sentiment_confidence'] = $result['confidence'];
-            }
-
-            // === STEP 4: Apply K-Means clustering ===
-            $clusteringResult = $this->kmeansService->setK(4)->cluster($filteredPosts);
-            
-            // Ensure all posts have platform field and separate by platform
-            $allPosts = [
-                'youtube' => [],
-                'twitter' => [],
-                'tiktok' => [],
-                'instagram' => [],
-            ];
-            
-            foreach ($filteredPosts as $post) {
-                $platform = strtolower($post['platform'] ?? 'unknown');
-                if (isset($allPosts[$platform])) {
-                    $allPosts[$platform][] = $post;
-                }
-            }
-
-            // Save to database
-            foreach ($filteredPosts as $post) {
-                $platform = $this->detectPlatform($post);
-                
-                Post::updateOrCreate(
-                    [
-                        'platform' => $platform,
-                        'external_id' => $post['external_id'] ?? uniqid(),
-                    ],
-                    [
-                        'content' => $post['content'],
-                        'author' => $post['author'],
-                        'likes' => $post['likes'] ?? 0,
-                        'comments' => $post['comments'] ?? 0,
-                        'views' => $post['views'] ?? 0,
-                        'sentiment' => $post['sentiment'],
-                        'sentiment_score' => $post['sentiment_score'],
-                        'raw' => json_encode($post['raw'] ?? []),
-                    ]
-                );
-            }
-
-            // Prepare data for view
-            $platforms = [
-                [
-                    'name' => 'youtube',
-                    'icon' => '/img/youtube.svg',
-                    'posts' => $allPosts['youtube'],
-                    'color' => 'red'
-                ],
-                [
-                    'name' => 'twitter',
-                    'icon' => '/img/twitter.svg',
-                    'posts' => $allPosts['twitter'],
-                    'color' => 'blue'
-                ],
-                [
-                    'name' => 'tiktok',
-                    'icon' => '/img/tiktok.svg',
-                    'posts' => $allPosts['tiktok'],
-                    'color' => 'purple'
-                ],
-                [
-                    'name' => 'instagram',
-                    'icon' => '/img/instagram.svg',
-                    'posts' => $allPosts['instagram'],
-                    'color' => 'pink'
-                ],
-            ];
-
-            // Calculate summaries
-            $sentimentSummary = $sentimentAnalysis['distribution'];
-            $platformSummary = $this->calculatePlatformSummary($allPosts);
-            $totalPosts = count($filteredPosts);
-
-            // === STEP 5: Generate comprehensive AI insights ===
-            $aiInsights = $this->aiInsightsService->generateInsights(
-                $topic,
-                $filteredPosts,
-                $sentimentAnalysis,
-                $clusteringResult,
-                $filteringStats
-            );
-            
-            // Get ML metrics
-            $filteringMetrics = $this->filteringService->getMetrics();
-            $clusteringMetrics = $this->kmeansService->getMetrics($clusteringResult);
-
-            return view('result', compact(
-                'topic',
-                'platforms',
-                'sentimentSummary',
-                'platformSummary',
-                'totalPosts',
-                'aiInsights',
-                'filteringStats',
-                'filteringMetrics',
-                'sentimentAnalysis',
-                'clusteringResult',
-                'clusteringMetrics'
-            ));
-
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat menganalisis: ' . $e->getMessage());
+        // === STEP 3: Apply Naive Bayes sentiment analysis ===
+        $sentimentAnalysis = $this->naiveBayesService->analyzeSentimentDistribution($filteredPosts);
+        
+        // Update posts with NB sentiment
+        foreach ($filteredPosts as &$post) {
+            $result = $this->naiveBayesService->classify($post['content']);
+            $post['sentiment'] = $result['sentiment'];
+            $post['sentiment_score'] = $result['score'];
+            $post['sentiment_confidence'] = $result['confidence'];
         }
+
+        // === STEP 4: Apply K-Means clustering ===
+        $clusteringResult = $this->kmeansService->setK(4)->cluster($filteredPosts);
+        
+        // Ensure all posts have platform field and separate by platform
+        $allPosts = [
+            'youtube' => [],
+            'twitter' => [],
+            'tiktok' => [],
+            'instagram' => [],
+        ];
+        
+        foreach ($filteredPosts as $post) {
+            $platform = strtolower($post['platform'] ?? 'unknown');
+            if (isset($allPosts[$platform])) {
+                $allPosts[$platform][] = $post;
+            }
+        }
+
+        // Save to database
+        foreach ($filteredPosts as $post) {
+            $platform = $this->detectPlatform($post);
+            
+            Post::updateOrCreate(
+                [
+                    'platform' => $platform,
+                    'external_id' => $post['external_id'] ?? uniqid(),
+                ],
+                [
+                    'content' => $post['content'],
+                    'author' => $post['author'],
+                    'likes' => $post['likes'] ?? 0,
+                    'comments' => $post['comments'] ?? 0,
+                    'views' => $post['views'] ?? 0,
+                    'sentiment' => $post['sentiment'],
+                    'sentiment_score' => $post['sentiment_score'],
+                    'raw' => json_encode($post['raw'] ?? []),
+                ]
+            );
+        }
+
+        // Prepare data for view
+        $platforms = [
+            [
+                'name' => 'youtube',
+                'icon' => '/img/youtube.svg',
+                'posts' => $allPosts['youtube'],
+                'color' => 'red'
+            ],
+            [
+                'name' => 'twitter',
+                'icon' => '/img/twitter.svg',
+                'posts' => $allPosts['twitter'],
+                'color' => 'blue'
+            ],
+            [
+                'name' => 'tiktok',
+                'icon' => '/img/tiktok.svg',
+                'posts' => $allPosts['tiktok'],
+                'color' => 'purple'
+            ],
+            [
+                'name' => 'instagram',
+                'icon' => '/img/instagram.svg',
+                'posts' => $allPosts['instagram'],
+                'color' => 'pink'
+            ],
+        ];
+
+        // Calculate summaries
+        $sentimentSummary = $sentimentAnalysis['distribution'];
+        $platformSummary = $this->calculatePlatformSummary($allPosts);
+        $totalPosts = count($filteredPosts);
+
+        // === STEP 5: Generate comprehensive AI insights ===
+        $aiInsights = $this->aiInsightsService->generateInsights(
+            $topic,
+            $filteredPosts,
+            $sentimentAnalysis,
+            $clusteringResult,
+            $filteringStats
+        );
+        
+        // Get ML metrics
+        $filteringMetrics = $this->filteringService->getMetrics();
+        $clusteringMetrics = $this->kmeansService->getMetrics($clusteringResult);
+
+        return view('result', compact(
+            'topic',
+            'platforms',
+            'sentimentSummary',
+            'platformSummary',
+            'totalPosts',
+            'aiInsights',
+            'filteringStats',
+            'filteringMetrics',
+            'sentimentAnalysis',
+            'clusteringResult',
+            'clusteringMetrics'
+        ));
     }
 
     /**

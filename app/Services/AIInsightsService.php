@@ -30,14 +30,19 @@ class AIInsightsService
     public function generateInsights($query, $filteredData, $sentimentAnalysis, $clusteringResult, $filteringStats)
     {
         $contentAnalysis = $this->analyzeContent($filteredData);
+        $userPersonas = $this->analyzeUserPersonas($filteredData);
+        $temporalTrends = $this->analyzeTemporalTrends($filteredData);
         
         $insights = [
-            'overview' => $this->generateOverview($query, $filteredData, $sentimentAnalysis, $filteringStats),
+            'overview' => $this->generateOverview($query, $filteredData, $sentimentAnalysis, $filteringStats, $userPersonas, $temporalTrends),
+            'key_drivers' => $this->analyzeKeyDrivers($filteredData, $contentAnalysis, $sentimentAnalysis, $userPersonas),
             'content_analysis' => $contentAnalysis,
             'sentiment_insights' => $this->generateSentimentInsights($sentimentAnalysis, $filteredData),
             'topic_themes' => $this->generateTopicThemes($clusteringResult),
+            'user_personas' => $userPersonas, // New Persona Insights
+            'temporal_trends' => $temporalTrends, // New Temporal Trends Insights
             'trends' => $this->detectTrends($filteredData, $query),
-            'recommendations' => $this->generateRecommendations($query, $filteredData, $sentimentAnalysis),
+            'recommendations' => $this->generateRecommendations($query, $filteredData, $sentimentAnalysis, $userPersonas, $temporalTrends),
             'personalized_notes' => $this->generatePersonalizedNotes($query, $filteredData, $contentAnalysis, $sentimentAnalysis),
         ];
 
@@ -45,10 +50,80 @@ class AIInsightsService
     }
 
     /**
+     * =================================================================================
+     * NEW: Key Drivers of Trend Analysis
+     * =================================================================================
+     */
+    protected function analyzeKeyDrivers($data, $contentAnalysis, $sentimentAnalysis, $userPersonas)
+    {
+        $drivers = [];
+
+        // 1. High Engagement
+        $engagementLevel = $this->getEngagementLevel($data);
+        if ($engagementLevel['level'] === 'High') {
+            $drivers[] = [
+                'driver' => 'High Engagement',
+                'explanation' => "Tingkat engagement yang sangat tinggi (rata-rata {$engagementLevel['average']} interaksi per post) menunjukkan audiens yang sangat aktif dan terlibat.",
+                'icon' => '🔥'
+            ];
+        }
+
+        // 2. Positive Sentiment
+        if ($sentimentAnalysis['percentages']['positive'] > 70) {
+            $drivers[] = [
+                'driver' => 'Sentimen Sangat Positif',
+                'explanation' => "Dengan {$sentimentAnalysis['percentages']['positive']}% sentimen positif, topik ini diterima dengan sangat baik dan didukung oleh mayoritas audiens.",
+                'icon' => '😊'
+            ];
+        }
+
+        // 3. Dominant Persona
+        $dominantPersona = $userPersonas['dominant_persona'];
+        if ($dominantPersona === 'The Hype Enthusiast') {
+            $drivers[] = [
+                'driver' => 'Dominasi "Hype Enthusiast"',
+                'explanation' => "Audiens didominasi oleh 'Hype Enthusiasts' yang ekspresif dan antusias, mendorong viralitas melalui komentar-komentar positif dan energik.",
+                'icon' => '🚀'
+            ];
+        }
+
+        // 4. Content-specific drivers
+        $genre = $contentAnalysis['genre']['primary'];
+        $tone = $contentAnalysis['tone']['primary'];
+
+        if ($genre === 'Music') {
+            $drivers[] = [
+                'driver' => 'Karakteristik Musik yang Kuat',
+                'explanation' => "Genre musik yang sedang digemari dengan melodi yang catchy dan tempo yang upbeat menjadi daya tarik utama.",
+                'icon' => '🎵'
+            ];
+        }
+
+        if (count($drivers) < 2 && $tone === 'Emotional') {
+            $drivers[] = [
+                'driver' => 'Koneksi Emosional',
+                'explanation' => "Konten berhasil membangun koneksi emosional yang kuat dengan audiens, tecermin dari tone yang dominan emosional.",
+                'icon' => '💖'
+            ];
+        }
+
+        // Fallback driver
+        if (empty($drivers)) {
+            $drivers[] = [
+                'driver' => 'Konten Relevan',
+                'explanation' => 'Topik ini relevan dengan minat audiens saat ini, memicu diskusi dan interaksi.',
+                'icon' => '🎯'
+            ];
+        }
+
+        return $drivers;
+    }
+
+    /**
      * Generate overview summary with detailed explanation
      * Enhanced with IndoBERT for more accurate sentiment analysis
      */
-    protected function generateOverview($query, $data, $sentimentAnalysis, $filteringStats)
+    protected function generateOverview($query, $data, $sentimentAnalysis, $filteringStats, $userPersonas = null)
     {
         $totalPosts = count($data);
         $overallSentiment = $sentimentAnalysis['overall_sentiment'];
@@ -68,6 +143,11 @@ class AIInsightsService
         // Generate detailed explanation with enhanced accuracy
         $detailedExplanation = $this->generateDetailedExplanation($query, $data, $sentimentAnalysis, $enhancedSentiment);
 
+        // Add persona summary to the main explanation
+        if ($userPersonas && !empty($userPersonas['summary'])) {
+            $detailedExplanation .= " " . $userPersonas['summary'];
+        }
+
         $overview = [
             'title' => "Analisis Tren: {$query}",
             'summary' => $detailedExplanation,
@@ -75,6 +155,7 @@ class AIInsightsService
             'data_quality' => $retentionRate . '%',
             'sentiment_score' => $enhancedSentiment['average_confidence'] ?? $avgScore,
             'dominant_sentiment' => ucfirst($enhancedSentiment['dominant'] ?? $overallSentiment),
+            'dominant_persona' => $userPersonas['dominant_persona'] ?? 'Undefined', // Add dominant persona
         ];
 
         return $overview;
@@ -723,9 +804,252 @@ class AIInsightsService
     }
 
     /**
+     * =================================================================================
+     * NEW: User Persona Analysis
+     * =================================================================================
+     */
+
+    /**
+     * Analyze user personas from the data
+     */
+    protected function analyzeUserPersonas($data)
+    {
+        $personas = [];
+        if (empty($data)) {
+            return $this->getEmptyPersonaResult();
+        }
+
+        foreach ($data as $item) {
+            $personas[] = $this->classifyPersona($item);
+        }
+
+        $personaCounts = array_count_values($personas);
+        arsort($personaCounts);
+
+        $total = count($personas);
+        $distribution = [];
+        foreach ($personaCounts as $persona => $count) {
+            $distribution[$persona] = round(($count / $total) * 100, 1);
+        }
+
+        $dominantPersona = !empty($personaCounts) ? array_key_first($personaCounts) : 'Undefined';
+
+        return [
+            'dominant_persona' => $dominantPersona,
+            'distribution' => $distribution,
+            'summary' => $this->getPersonaSummary($dominantPersona, $distribution),
+            'details' => $this->getPersonaDetails(),
+        ];
+    }
+
+    /**
+     * Classify a single piece of content into a persona
+     */
+    protected function classifyPersona($item)
+    {
+        $content = strtolower($item['content'] ?? '');
+        $sentiment = $item['sentiment'] ?? 'neutral';
+        $wordCount = str_word_count($content);
+        $emojiCount = preg_match_all('/[\x{1F600}-\x{1F64F}]/u', $content);
+        $exclamationCount = substr_count($content, '!');
+        $questionCount = substr_count($content, '?');
+        $allCapsCount = preg_match_all('/\b[A-Z]{4,}\b/', $item['content'] ?? '');
+
+        // Persona classification logic
+        if ($sentiment === 'negative' && $wordCount > 10) {
+            return 'The Critic';
+        }
+
+        if (($allCapsCount > 1 || $exclamationCount > 2 || $emojiCount > 3) && $sentiment === 'positive') {
+            return 'The Hype Enthusiast';
+        }
+
+        if ($wordCount > 30 && ($questionCount > 0 || stripos($content, 'compare') !== false || stripos($content, 'analisis') !== false)) {
+            return 'The Analyst';
+        }
+        
+        if ($wordCount > 25 && (stripos($content, 'i feel') !== false || stripos($content, 'my experience') !== false || stripos($content, 'saya rasa') !== false)) {
+            return 'The Storyteller';
+        }
+
+        if ($wordCount < 10 && $sentiment === 'positive') {
+            return 'The Casual Fan';
+        }
+
+        return 'The Observer'; // Default persona
+    }
+
+    /**
+     * Get summary description for dominant persona
+     */
+    protected function getPersonaSummary($dominant, $distribution)
+    {
+        $percentage = $distribution[$dominant] ?? 0;
+        $summary = "Audiens Anda didominasi oleh **{$dominant}** ({$percentage}%). ";
+
+        switch ($dominant) {
+            case 'The Hype Enthusiast':
+                $summary .= "Mereka adalah fans yang sangat antusias dan ekspresif, menjadi pendorong utama viralitas konten Anda.";
+                break;
+            case 'The Analyst':
+                $summary .= "Mereka adalah pemikir kritis yang suka menganalisis secara mendalam dan memberikan feedback konstruktif.";
+                break;
+            case 'The Critic':
+                $summary .= "Mereka adalah suara kritis yang penting untuk didengarkan, memberikan feedback jujur untuk perbaikan.";
+                break;
+            case 'The Casual Fan':
+                $summary .= "Mereka adalah mayoritas pendukung yang menikmati konten Anda secara santai dan memberikan dukungan positif.";
+                break;
+            case 'The Storyteller':
+                $summary .= "Mereka adalah audiens yang suka berbagi pengalaman pribadi, menciptakan koneksi emosional yang kuat.";
+                break;
+            case 'The Observer':
+                $summary .= "Mereka adalah 'silent majority' yang mengamati diskusi tanpa banyak berinteraksi.";
+                break;
+        }
+        return $summary;
+    }
+
+    /**
+     * Get detailed descriptions for all personas
+     */
+    protected function getPersonaDetails()
+    {
+        return [
+            'The Hype Enthusiast' => [
+                'description' => 'Sangat antusias, ekspresif, dan sering menggunakan emoji atau huruf kapital. Mereka adalah pendorong utama engagement dan viralitas.',
+                'characteristics' => 'Bahasa superlatif, banyak tanda seru, komentar positif.',
+                'strategy' => 'Buat konten yang lebih energik, visual, dan interaktif untuk memicu reaksi mereka.'
+            ],
+            'The Analyst' => [
+                'description' => 'Cenderung memberikan komentar panjang, analitis, dan sering membandingkan. Mereka memberikan feedback yang mendalam dan berkualitas.',
+                'characteristics' => 'Komentar terstruktur, argumentatif, sering bertanya.',
+                'strategy' => 'Sajikan data, insight mendalam, dan buka ruang diskusi untuk menarik minat mereka.'
+            ],
+            'The Critic' => [
+                'description' => 'Memberikan kritik atau feedback negatif yang jujur. Suara mereka penting untuk identifikasi kelemahan dan area perbaikan.',
+                'characteristics' => 'Bahasa kritis, menyoroti masalah, sentimen negatif.',
+                'strategy' => 'Dengarkan feedback mereka secara terbuka, berikan respons yang solutif, dan tunjukkan perbaikan.'
+            ],
+            'The Casual Fan' => [
+                'description' => 'Memberikan dukungan positif dengan komentar singkat dan santai. Mereka membentuk basis audiens yang loyal.',
+                'characteristics' => 'Komentar pendek, likes, sentimen positif.',
+                'strategy' => 'Apresiasi dukungan mereka, buat konten yang mudah dinikmati dan relate dengan keseharian.'
+            ],
+            'The Storyteller' => [
+                'description' => 'Suka berbagi pengalaman atau cerita pribadi yang terkait dengan konten. Mereka membangun koneksi emosional.',
+                'characteristics' => 'Menggunakan kata ganti orang pertama, cerita personal.',
+                'strategy' => 'Buat konten yang memancing cerita dan emosi, adakan sesi tanya jawab personal.'
+            ],
+            'The Observer' => [
+                'description' => "Audiens pasif yang lebih banyak melihat daripada berinteraksi. Mereka adalah 'silent majority' yang potensial.",
+                'characteristics' => 'Jarang berkomentar atau meninggalkan jejak.',
+                'strategy' => 'Buat polling atau konten yang sangat mudah untuk diikuti agar mereka terdorong untuk berpartisipasi.'
+            ]
+        ];
+    }
+
+    /**
+     * Return an empty persona result if no data
+     */
+    protected function getEmptyPersonaResult()
+    {
+        return [
+            'dominant_persona' => 'Undefined',
+            'distribution' => [],
+            'summary' => 'Tidak cukup data untuk menganalisis persona audiens.',
+            'details' => $this->getPersonaDetails(),
+        ];
+    }
+
+    /**
+     * Analyze temporal trends in the data
+     * Identifies patterns over time such as peak activity periods
+     */
+    protected function analyzeTemporalTrends($data)
+    {
+        if (empty($data)) {
+            return [
+                'summary' => 'Tidak cukup data untuk menganalisis tren temporal.',
+                'peak_period' => 'Unknown',
+                'activity_pattern' => 'Unknown',
+                'hourly_distribution' => [],
+                'daily_distribution' => [],
+            ];
+        }
+
+        // Group posts by hour and day
+        $hourlyActivity = [];
+        $dailyActivity = [];
+        
+        foreach ($data as $item) {
+            // Extract timestamp (assuming created_at exists)
+            $timestamp = $item['created_at'] ?? $item['timestamp'] ?? now();
+            
+            if (is_string($timestamp)) {
+                $timestamp = strtotime($timestamp);
+            } elseif ($timestamp instanceof \DateTime || $timestamp instanceof \Illuminate\Support\Carbon) {
+                $timestamp = $timestamp->getTimestamp();
+            }
+            
+            $hour = date('H', $timestamp);
+            $day = date('l', $timestamp); // Day name (Monday, Tuesday, etc.)
+            
+            // Count by hour
+            if (!isset($hourlyActivity[$hour])) {
+                $hourlyActivity[$hour] = 0;
+            }
+            $hourlyActivity[$hour]++;
+            
+            // Count by day
+            if (!isset($dailyActivity[$day])) {
+                $dailyActivity[$day] = 0;
+            }
+            $dailyActivity[$day]++;
+        }
+        
+        // Find peak hour and day
+        arsort($hourlyActivity);
+        arsort($dailyActivity);
+        
+        $peakHour = !empty($hourlyActivity) ? array_key_first($hourlyActivity) : 'Unknown';
+        $peakDay = !empty($dailyActivity) ? array_key_first($dailyActivity) : 'Unknown';
+        
+        // Determine activity pattern
+        $morningPosts = array_sum(array_intersect_key($hourlyActivity, array_flip(range(6, 11))));
+        $afternoonPosts = array_sum(array_intersect_key($hourlyActivity, array_flip(range(12, 17))));
+        $eveningPosts = array_sum(array_intersect_key($hourlyActivity, array_flip(range(18, 23))));
+        $nightPosts = array_sum(array_intersect_key($hourlyActivity, array_flip(range(0, 5))));
+        
+        $patterns = [
+            'morning' => $morningPosts,
+            'afternoon' => $afternoonPosts,
+            'evening' => $eveningPosts,
+            'night' => $nightPosts,
+        ];
+        
+        arsort($patterns);
+        $dominantPattern = array_key_first($patterns);
+        
+        // Generate summary
+        $summary = "Aktivitas tertinggi terjadi pada hari **{$peakDay}** sekitar pukul **{$peakHour}:00**. ";
+        $summary .= "Pola aktivitas didominasi pada periode **{$dominantPattern}**.";
+        
+        return [
+            'summary' => $summary,
+            'peak_hour' => $peakHour . ':00',
+            'peak_day' => $peakDay,
+            'activity_pattern' => ucfirst($dominantPattern),
+            'hourly_distribution' => $hourlyActivity,
+            'daily_distribution' => $dailyActivity,
+            'time_periods' => $patterns,
+        ];
+    }
+
+    /**
      * Generate actionable recommendations with evidence
      */
-    protected function generateRecommendations($query, $data, $sentimentAnalysis)
+    protected function generateRecommendations($query, $data, $sentimentAnalysis, $userPersonas = null)
     {
         $recommendations = [];
         
@@ -757,9 +1081,10 @@ class AIInsightsService
                     'top_comments' => $topComments,
                 ],
                 'action_items' => [
-                    "Buat konten serupa dengan karakteristik yang sama dengan top posts",
-                    "Replikasi elemen yang mendapat engagement tinggi",
-                    "Tingkatkan frekuensi posting di waktu optimal"
+                    "Buat konten serupa dengan karakteristik yang sama dengan top posts.",
+                    "Replikasi elemen yang mendapat engagement tinggi.",
+                    "Gunakan format video pendek (Shorts/Reels) untuk konten yang lebih dinamis.",
+                    "Buat konten 'Behind the Scenes' atau 'Making Of' untuk meningkatkan kedekatan dengan audiens."
                 ]
             ];
         }
@@ -774,9 +1099,9 @@ class AIInsightsService
                     'critical_comments' => $criticalComments,
                 ],
                 'action_items' => [
-                    "Identifikasi pola kritik yang berulang",
-                    "Buat strategi respons untuk feedback negatif",
-                    "Implementasi perbaikan berdasarkan kritik konstruktif"
+                    "Identifikasi pola kritik yang berulang.",
+                    "Buat strategi respons untuk feedback negatif.",
+                    "Implementasi perbaikan berdasarkan kritik konstruktif."
                 ]
             ];
         }
@@ -789,15 +1114,50 @@ class AIInsightsService
             'evidence' => [
                 'viral_examples' => $this->getViralPosts($data, 3),
                 'best_performing_platforms' => $this->getBestPlatforms($data),
-                'top_youtube_videos' => $topYouTubeVideos,
+            ],
+            'action_items' => [
+                "Posting saat jam peak engagement (berdasarkan platform terbaik).",
+                "Gunakan format konten yang terbukti viral.",
+                "Engage dengan komentar untuk meningkatkan algoritma reach."
+            ]
+        ];
+
+        // Community Engagement
+        $recommendations[] = [
+            'type' => 'Community',
+            'title' => 'Community Engagement',
+            'description' => "Bangun komunitas yang kuat di sekitar topik '{$query}' dengan berinteraksi secara aktif dengan audiens.",
+            'evidence' => [
                 'top_comments' => $topComments,
             ],
             'action_items' => [
-                "Posting saat jam peak engagement (berdasarkan platform terbaik)",
-                "Gunakan format konten yang terbukti viral",
-                "Engage dengan komentar untuk meningkatkan algoritma reach"
+                "Balas komentar-komentar teratas untuk menunjukkan apresiasi.",
+                "Adakan sesi Q&A atau polling untuk melibatkan audiens.",
+                "Buat konten kolaborasi dengan kreator lain di niche yang sama."
             ]
         ];
+
+        // NEW: Persona-based recommendations
+        if ($userPersonas && !empty($userPersonas['dominant_persona'])) {
+            $dominantPersona = $userPersonas['dominant_persona'];
+            $personaDetails = $userPersonas['details'][$dominantPersona] ?? null;
+
+            if ($personaDetails) {
+                $recommendations[] = [
+                    'type' => 'Audience Strategy',
+                    'title' => 'Engage Your Dominant Persona: ' . $dominantPersona,
+                    'description' => "Mayoritas audiens Anda adalah '{$dominantPersona}'. " . $personaDetails['description'] . " " . $personaDetails['strategy'],
+                    'evidence' => [
+                        'persona_distribution' => $userPersonas['distribution'],
+                    ],
+                    'action_items' => [
+                        "Sesuaikan tone konten Anda agar lebih resonan dengan '{$dominantPersona}'.",
+                        "Buat konten yang secara spesifik menjawab minat dan karakteristik mereka.",
+                        "Gunakan platform yang paling banyak digunakan oleh persona ini."
+                    ]
+                ];
+            }
+        }
 
         return $recommendations;
     }
@@ -1148,69 +1508,89 @@ class AIInsightsService
         $notes = [
             'category' => 'Music',
             'icon' => '🎵',
+            'notes' => [],
         ];
-        
-        // Analyze musical preferences from data
+
         $musicAnalysis = $this->analyzeMusicCharacteristics($data, $genre);
-        
-        // Genre recommendations
-        $notes['genre_preference'] = [
-            'detected' => $genre['subgenre'] ?? $genre['primary'],
-            'description' => $genre['description'] ?? '',
-            'note' => "Berdasarkan data, audience menyukai genre {$genre['subgenre']} dengan karakteristik yang catchy dan engaging."
+
+        // Genre
+        $notes['notes']['genre'] = [
+            'icon' => '🎶',
+            'title' => 'Genre Preference',
+            'value' => $genre['subgenre'] ?? $genre['primary'],
+            'explanation' => "Audience responds well to {$genre['subgenre']} with its catchy and engaging characteristics."
         ];
-        
-        // Tempo/BPM recommendations
-        $notes['tempo_preference'] = [
-            'recommended_bpm' => $musicAnalysis['bpm_range'],
-            'energy_level' => $tone['primary'],
-            'note' => "Data menunjukkan audience lebih responsif terhadap musik dengan tempo {$musicAnalysis['bpm_range']} BPM yang {$this->getEnergyDescription($tone['primary'])}."
+
+        // Tempo
+        $notes['notes']['tempo'] = [
+            'icon' => '⏱️',
+            'title' => 'Tempo & Energy',
+            'value' => "{$musicAnalysis['bpm_range']} BPM ({$tone['primary']})",
+            'explanation' => "Music with a {$musicAnalysis['bpm_range']} BPM range that is {$this->getEnergyDescription($tone['primary'])} resonates most with the audience."
         ];
-        
-        // Tone/Mood recommendations
-        $primaryMood = $tone['primary'];
-        $moodStrength = $tone['strength'];
-        $moodDescription = $tone['description'];
-        $notes['mood_preference'] = [
-            'primary_mood' => $primaryMood,
-            'strength' => $moodStrength . '%',
-            'note' => "Konten dengan mood {$primaryMood} mendapat respon paling tinggi dari audience. {$moodDescription}"
+
+        // Mood
+        $notes['notes']['mood'] = [
+            'icon' => '😊',
+            'title' => 'Mood Preference',
+            'value' => $tone['primary'],
+            'explanation' => "Content with a {$tone['primary']} mood gets the highest response. {$tone['description']}"
         ];
-        
-        // Lyrical themes
+
+        // Lyrical Themes
         if (!empty($themes)) {
             $topTheme = $themes[0];
-            $themeName = $topTheme['name'];
-            $themeRelevance = $topTheme['relevance'];
-            $notes['lyrical_themes'] = [
-                'top_theme' => $themeName,
-                'relevance' => $themeRelevance . '%',
-                'note' => "Lirik dengan tema '{$themeName}' sangat disukai audience ({$themeRelevance}% relevansi). Fokus pada tema ini untuk konten selanjutnya."
+            $notes['notes']['lyrics'] = [
+                'icon' => '✍️',
+                'title' => 'Lyrical Themes',
+                'value' => $topTheme['name'],
+                'explanation' => "Lyrics with the theme '{$topTheme['name']}' are highly popular ({$topTheme['relevance']}% relevance). Focus on this for future content."
             ];
         }
-        
-        // Harmoni recommendations
-        $overallSentiment = $sentimentAnalysis['overall_sentiment'];
-        $harmonyType = $musicAnalysis['harmony_type'];
-        $harmonyDesc = $this->getHarmonyDescription($harmonyType);
-        $notes['harmony_preference'] = [
-            'type' => $harmonyType,
-            'note' => "Berdasarkan sentimen {$overallSentiment}, audience lebih menyukai harmoni {$harmonyType} yang {$harmonyDesc}."
+
+        // Song Structure
+        $notes['notes']['structure'] = [
+            'icon' => '🏗️',
+            'title' => 'Song Structure',
+            'value' => $this->suggestSongStructure($genre['subgenre']),
+            'explanation' => 'This structure is proven to be effective for engagement in this genre.'
         ];
-        
-        // Instrument suggestions
-        $subgenre = $genre['subgenre'] ?? $genre['primary'];
-        $notes['instrument_suggestions'] = $this->getInstrumentSuggestions($subgenre, $tone['primary']);
-        
-        // Vocal style
-        $vocalStyle = $musicAnalysis['vocal_style'];
-        $notes['vocal_style'] = [
-            'recommended' => $vocalStyle,
-            'note' => "Style vokal {$vocalStyle} paling cocok untuk genre ini berdasarkan analisis engagement."
+
+        // Production Elements
+        $notes['notes']['production'] = [
+            'icon' => '🎚️',
+            'title' => 'Production Elements',
+            'value' => implode(', ', $this->suggestProductionElements($genre['subgenre'])),
+            'explanation' => 'These production elements will enhance the track\'s appeal.'
         ];
-        
+
         return $notes;
     }
+
+    protected function suggestSongStructure($subgenre)
+    {
+        $structures = [
+            'Pop' => 'Verse-Chorus-Verse-Chorus-Bridge-Chorus',
+            'Rock' => 'Intro-Verse-Chorus-Verse-Chorus-Solo-Chorus-Outro',
+            'Hip-Hop' => 'Intro-Verse-Chorus-Verse-Chorus-Bridge-Outro',
+            'EDM' => 'Intro-Build-up-Drop-Breakdown-Build-up-Drop-Outro',
+            'Ballad' => 'Verse-Chorus-Verse-Chorus-Bridge-Climax-Outro',
+        ];
+        return $structures[$subgenre] ?? 'Verse-Chorus-Verse-Chorus-Outro';
+    }
+
+    protected function suggestProductionElements($subgenre)
+    {
+        $elements = [
+            'Pop' => ['Layered vocals', 'Synth pads', 'Punchy drums'],
+            'Rock' => ['Distorted guitars', 'Live drums', 'Powerful bassline'],
+            'Hip-Hop' => ['808 bass', 'Hi-hat rolls', 'Vocal samples'],
+            'EDM' => ['Synth leads', 'Sidechain compression', 'Vocal chops'],
+            'Ballad' => ['Piano melody', 'String section', 'Reverb on vocals'],
+        ];
+        return $elements[$subgenre] ?? ['Catchy melody', 'Clear vocals'];
+    }
+
 
     /**
      * Analyze music characteristics from data
@@ -1313,12 +1693,32 @@ class AIInsightsService
         return [
             'category' => 'Fashion',
             'icon' => '👗',
-            'style_preference' => [
-                'mood' => $tone['primary'],
-                'note' => "Audience menyukai style dengan mood {$tone['primary']}. Pilih warna dan pattern yang matching dengan vibe ini."
-            ],
-            'color_palette' => $this->suggestColorPalette($tone['primary'], $sentimentAnalysis['overall_sentiment']),
-            'occasions' => $this->suggestFashionOccasions($themes),
+            'notes' => [
+                'style_preference' => [
+                    'icon' => '🎨',
+                    'title' => 'Style Preference',
+                    'value' => $tone['primary'],
+                    'explanation' => "Audiences love styles with a {$tone['primary']} mood. Choose colors and patterns that match this vibe."
+                ],
+                'color_palette' => [
+                    'icon' => '🌈',
+                    'title' => 'Color Palette',
+                    'value' => implode(', ', $this->suggestColorPalette($tone['primary'], $sentimentAnalysis['overall_sentiment'])['primary']),
+                    'explanation' => $this->suggestColorPalette($tone['primary'], $sentimentAnalysis['overall_sentiment'])['note']
+                ],
+                'materials' => [
+                    'icon' => '🧵',
+                    'title' => 'Suggested Materials',
+                    'value' => 'Cotton, Linen, Silk',
+                    'explanation' => 'Light and comfortable materials are preferred for this style.'
+                ],
+                'key_items' => [
+                    'icon' => '🔑',
+                    'title' => 'Key Items',
+                    'value' => 'Oversized Blazer, Wide-leg Pants, Statement Accessories',
+                    'explanation' => 'These items are central to achieving the desired look.'
+                ]
+            ]
         ];
     }
 
@@ -1330,17 +1730,17 @@ class AIInsightsService
         if ($sentiment === 'positive') {
             return [
                 'primary' => ['Bright colors', 'Pastels', 'Vibrant hues'],
-                'note' => 'Warna-warna cerah dan optimis yang mencerminkan sentimen positif audience.'
+                'note' => 'Bright and optimistic colors that reflect the positive sentiment of the audience.'
             ];
         } elseif ($sentiment === 'negative') {
             return [
                 'primary' => ['Dark tones', 'Neutrals', 'Muted colors'],
-                'note' => 'Palet warna yang sophisticated dan understated.'
+                'note' => 'A sophisticated and understated color palette.'
             ];
         } else {
             return [
                 'primary' => ['Balanced mix', 'Earth tones', 'Classic colors'],
-                'note' => 'Kombinasi warna yang balanced dan versatile.'
+                'note' => 'A balanced and versatile combination of colors.'
             ];
         }
     }
@@ -1360,8 +1760,8 @@ class AIInsightsService
         }
         
         return [
-            'suitable_for' => !empty($occasions) ? $occasions : ['Versatile - berbagai occasion'],
-            'note' => 'Berdasarkan analisis konten, style ini cocok untuk berbagai kesempatan.'
+            'suitable_for' => !empty($occasions) ? $occasions : ['Versatile - various occasions'],
+            'note' => 'Based on content analysis, this style is suitable for various occasions.'
         ];
     }
 
@@ -1373,15 +1773,32 @@ class AIInsightsService
         return [
             'category' => 'Food',
             'icon' => '🍽️',
-            'flavor_profile' => [
-                'preference' => $this->detectFlavorPreference($tone['primary'], $sentimentAnalysis),
-                'note' => 'Berdasarkan data, audience menyukai flavor profile yang matching dengan mood konten.'
-            ],
-            'cuisine_type' => $this->suggestCuisineType($themes),
-            'presentation_style' => [
-                'recommended' => $tone['primary'] === 'Energetic' ? 'Colorful & Instagram-worthy' : 'Classic & Elegant',
-                'note' => 'Style presentasi yang sesuai dengan preferensi visual audience.'
-            ],
+            'notes' => [
+                'flavor_profile' => [
+                    'icon' => '🌶️',
+                    'title' => 'Flavor Profile',
+                    'value' => $this->detectFlavorPreference($tone['primary'], $sentimentAnalysis),
+                    'explanation' => 'Based on the data, the audience prefers a flavor profile that matches the content\'s mood.'
+                ],
+                'key_ingredients' => [
+                    'icon' => '🥕',
+                    'title' => 'Key Ingredients',
+                    'value' => 'Fresh herbs, Exotic spices, Artisanal cheeses',
+                    'explanation' => 'Using high-quality and unique ingredients will attract more attention.'
+                ],
+                'cooking_method' => [
+                    'icon' => '🍳',
+                    'title' => 'Cooking Method',
+                    'value' => 'Slow-cooking, Grilling, Sous-vide',
+                    'explanation' => 'Modern and sophisticated cooking techniques are highly appreciated.'
+                ],
+                'presentation_style' => [
+                    'icon' => '🎨',
+                    'title' => 'Presentation Style',
+                    'value' => $tone['primary'] === 'Energetic' ? 'Colorful & Instagram-worthy' : 'Classic & Elegant',
+                    'explanation' => 'A presentation style that aligns with the visual preferences of the audience.'
+                ],
+            ]
         ];
     }
 
@@ -1407,7 +1824,7 @@ class AIInsightsService
         $cuisines = ['Asian Fusion', 'Western', 'Traditional', 'Modern Fusion'];
         return [
             'popular' => $cuisines,
-            'note' => 'Variasi cuisine yang populer berdasarkan engagement data.'
+            'note' => 'A variety of cuisines are popular based on engagement data.'
         ];
     }
 
@@ -1419,15 +1836,32 @@ class AIInsightsService
         return [
             'category' => 'Technology',
             'icon' => '💻',
-            'tech_focus' => [
-                'area' => $this->detectTechArea($data),
-                'note' => 'Fokus teknologi yang paling menarik minat audience.'
-            ],
-            'innovation_level' => [
-                'preference' => $sentimentAnalysis['overall_sentiment'] === 'positive' ? 'Cutting-edge & Innovative' : 'Practical & Reliable',
-                'note' => 'Level inovasi yang sesuai dengan ekspektasi audience.'
-            ],
-            'use_cases' => $this->suggestTechUseCases($themes),
+            'notes' => [
+                'tech_focus' => [
+                    'icon' => '🎯',
+                    'title' => 'Tech Focus',
+                    'value' => $this->detectTechArea($data),
+                    'explanation' => 'The technology focus that most interests the audience.'
+                ],
+                'target_audience' => [
+                    'icon' => '👥',
+                    'title' => 'Target Audience',
+                    'value' => 'Early adopters, Tech enthusiasts, Professionals',
+                    'explanation' => 'This technology is most relevant to this audience segment.'
+                ],
+                'key_features' => [
+                    'icon' => '🔑',
+                    'title' => 'Key Features',
+                    'value' => 'AI-powered automation, Seamless integration, User-friendly interface',
+                    'explanation' => 'Highlighting these features will increase adoption.'
+                ],
+                'use_cases' => [
+                    'icon' => '🚀',
+                    'title' => 'Use Cases',
+                    'value' => implode(', ', $this->suggestTechUseCases($themes)['primary']),
+                    'explanation' => $this->suggestTechUseCases($themes)['note']
+                ],
+            ]
         ];
     }
 
