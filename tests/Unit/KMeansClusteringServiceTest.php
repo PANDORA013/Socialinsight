@@ -2,8 +2,8 @@
 
 namespace Tests\Unit;
 
-use Tests\TestCase;
 use App\Services\KMeansClusteringService;
+use Tests\TestCase;
 
 class KMeansClusteringServiceTest extends TestCase
 {
@@ -12,7 +12,7 @@ class KMeansClusteringServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new KMeansClusteringService();
+        $this->service = new KMeansClusteringService;
     }
 
     public function test_can_cluster_posts()
@@ -27,7 +27,7 @@ class KMeansClusteringServiceTest extends TestCase
         ];
 
         $result = $this->service->setK(3)->cluster($posts);
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('clusters', $result);
         $this->assertArrayHasKey('cluster_count', $result);
@@ -38,10 +38,10 @@ class KMeansClusteringServiceTest extends TestCase
     {
         $k = 5;
         $this->service->setK($k);
-        
+
         $posts = array_fill(0, 10, ['content' => 'Test content']);
         $result = $this->service->cluster($posts);
-        
+
         $this->assertLessThanOrEqual($k, $result['cluster_count']);
     }
 
@@ -52,7 +52,7 @@ class KMeansClusteringServiceTest extends TestCase
         ];
 
         $result = $this->service->setK(3)->cluster($posts);
-        
+
         $this->assertIsArray($result);
         $this->assertGreaterThanOrEqual(1, $result['cluster_count']);
     }
@@ -62,7 +62,7 @@ class KMeansClusteringServiceTest extends TestCase
         $posts = [];
 
         $result = $this->service->setK(3)->cluster($posts);
-        
+
         $this->assertIsArray($result);
         // Empty dataset may return 0 or 1 cluster
         $this->assertGreaterThanOrEqual(0, $result['cluster_count']);
@@ -78,7 +78,7 @@ class KMeansClusteringServiceTest extends TestCase
         ];
 
         $result = $this->service->setK(3)->cluster($posts);
-        
+
         foreach ($result['clusters'] as $cluster) {
             $this->assertArrayHasKey('keywords', $cluster);
             $this->assertIsArray($cluster['keywords']);
@@ -90,7 +90,7 @@ class KMeansClusteringServiceTest extends TestCase
         $posts = array_fill(0, 20, ['content' => 'Test post content']);
 
         $result = $this->service->setK(4)->cluster($posts);
-        
+
         $totalSize = array_sum(array_column($result['clusters'], 'size'));
         $this->assertEquals(count($posts), $totalSize);
     }
@@ -104,7 +104,7 @@ class KMeansClusteringServiceTest extends TestCase
         ];
 
         $result = $this->service->setK(2)->cluster($posts);
-        
+
         // Check basic structure
         $this->assertArrayHasKey('clusters', $result);
         $this->assertArrayHasKey('cluster_count', $result);

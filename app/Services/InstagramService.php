@@ -43,20 +43,20 @@ class InstagramService
         for ($i = 0; $i < min($count, count($templates)); $i++) {
             $sentiment = $i < 6 ? 'positive' : ($i === 4 || $i === 9 ? 'negative' : 'neutral');
             $score = $sentiment === 'positive' ? rand(75, 98) / 100 : ($sentiment === 'negative' ? rand(15, 35) / 100 : rand(45, 65) / 100);
-            $username = 'instauser' . rand(1, 999);
+            $username = 'instauser'.rand(1, 999);
 
             $results[] = [
                 'platform' => 'instagram',
                 'post_id' => $this->generateInstagramShortcode(), // Instagram shortcode format
                 'content' => $templates[$i],
-                'author' => '@' . $username,
+                'author' => '@'.$username,
                 'likes' => rand(500, 100000),
                 'comments' => rand(20, 10000),
                 'views' => rand(50000, 5000000),
-                'external_id' => 'ig_' . uniqid(),
+                'external_id' => 'ig_'.uniqid(),
                 'sentiment' => $sentiment,
                 'score' => $score,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-' . rand(1, 30) . ' days')),
+                'created_at' => date('Y-m-d H:i:s', strtotime('-'.rand(1, 30).' days')),
                 'raw' => ['mock' => true],
             ];
         }
@@ -74,6 +74,7 @@ class InstagramService
         for ($i = 0; $i < 11; $i++) {
             $shortcode .= $chars[rand(0, strlen($chars) - 1)];
         }
+
         return $shortcode;
     }
 }

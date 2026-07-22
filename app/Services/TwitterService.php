@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 class TwitterService
 {
     protected $bearerToken;
+
     protected $baseUrl = 'https://api.twitter.com/2';
 
     public function __construct()
@@ -25,11 +26,11 @@ class TwitterService
         // https://x.com/username/status/1234567890
         $pattern = '/(?:twitter\.com|x\.com)\/[^\/]+\/status\/(\d+)/';
         preg_match($pattern, $url, $matches);
-        
-        if (!isset($matches[1])) {
+
+        if (! isset($matches[1])) {
             throw new \Exception('Invalid Twitter/X URL');
         }
-        
+
         return $matches[1];
     }
 
@@ -43,26 +44,24 @@ class TwitterService
             throw new \Exception('Twitter Bearer Token not configured');
         }
 
-        // Get the original tweet first (SSL verification disabled for Windows/XAMPP)
-        $tweetResponse = Http::withoutVerifying()->withHeaders([
-            'Authorization' => 'Bearer ' . $this->bearerToken,
-        ])->get("{$this->baseUrl}/tweets/{$tweetId}", [
+        $tweetResponse = Http::withHeaders([
+            'Authorization' => 'Bearer '.$this->bearerToken,
+        ])->timeout(10)->retry(2, 250)->get("{$this->baseUrl}/tweets/{$tweetId}", [
             'tweet.fields' => 'author_id,created_at,public_metrics',
             'expansions' => 'author_id',
             'user.fields' => 'username,name',
         ]);
 
-        if (!$tweetResponse->successful()) {
-            throw new \Exception('Failed to fetch tweet: ' . $tweetResponse->body());
+        if (! $tweetResponse->successful()) {
+            throw new \Exception('Failed to fetch tweet: '.$tweetResponse->body());
         }
 
         $tweetData = $tweetResponse->json();
         $authorUsername = $tweetData['includes']['users'][0]['username'] ?? 'unknown';
 
-        // Search for replies (requires elevated access, SSL verification disabled)
-        $response = Http::withoutVerifying()->withHeaders([
-            'Authorization' => 'Bearer ' . $this->bearerToken,
-        ])->get("{$this->baseUrl}/tweets/search/recent", [
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer '.$this->bearerToken,
+        ])->timeout(10)->retry(2, 250)->get("{$this->baseUrl}/tweets/search/recent", [
             'query' => "conversation_id:{$tweetId}",
             'max_results' => min($maxResults, 100),
             'tweet.fields' => 'author_id,created_at,public_metrics',
@@ -70,7 +69,7 @@ class TwitterService
             'user.fields' => 'username,name',
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             // If we don't have elevated access, return the original tweet only
             if ($response->status() === 403) {
                 return [[
@@ -81,7 +80,7 @@ class TwitterService
                     'created_at' => $tweetData['data']['created_at'] ?? now(),
                 ]];
             }
-            throw new \Exception('Failed to fetch replies: ' . $response->body());
+            throw new \Exception('Failed to fetch replies: '.$response->body());
         }
 
         $data = $response->json();
@@ -118,17 +117,16 @@ class TwitterService
             throw new \Exception('Twitter Bearer Token not configured');
         }
 
-        // SSL verification disabled for Windows/XAMPP
-        $response = Http::withoutVerifying()->withHeaders([
-            'Authorization' => 'Bearer ' . $this->bearerToken,
-        ])->get("{$this->baseUrl}/tweets/{$tweetId}", [
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer '.$this->bearerToken,
+        ])->timeout(10)->retry(2, 250)->get("{$this->baseUrl}/tweets/{$tweetId}", [
             'tweet.fields' => 'author_id,created_at,public_metrics',
             'expansions' => 'author_id',
             'user.fields' => 'username,name',
         ]);
 
-        if (!$response->successful()) {
-            throw new \Exception('Failed to fetch tweet: ' . $response->body());
+        if (! $response->successful()) {
+            throw new \Exception('Failed to fetch tweet: '.$response->body());
         }
 
         $data = $response->json();
@@ -156,13 +154,13 @@ class TwitterService
             // Check if bearer token is configured
             if (empty($this->bearerToken)) {
                 Log::warning('Twitter Bearer Token not configured');
+
                 return [];
             }
 
-            // SSL verification disabled for Windows/XAMPP
-            $response = Http::withoutVerifying()->withHeaders([
+            $response = Http::withHeaders([
                 'Authorization' => "Bearer {$this->bearerToken}",
-            ])->get("{$this->baseUrl}/tweets/search/recent", [
+            ])->timeout(10)->retry(2, 250)->get("{$this->baseUrl}/tweets/search/recent", [
                 'query' => $topic,
                 'max_results' => min($maxResults, 100),
                 'tweet.fields' => 'public_metrics,created_at,author_id',
@@ -170,8 +168,9 @@ class TwitterService
                 'user.fields' => 'username,name',
             ]);
 
-            if (!$response->successful()) {
-                Log::error('Twitter search failed: ' . $response->body());
+            if (! $response->successful()) {
+                Log::error('Twitter search failed: '.$response->body());
+
                 return [];
             }
 
@@ -191,10 +190,10 @@ class TwitterService
                 $results[] = [
                     'platform' => 'twitter',  // ← Added platform identifier
                     'content' => $tweet['text'] ?? '',
-                    'author' => '@' . ($author['username'] ?? 'unknown'),
-                    'likes' => (int)($tweet['public_metrics']['like_count'] ?? 0),
-                    'comments' => (int)($tweet['public_metrics']['reply_count'] ?? 0),
-                    'views' => (int)($tweet['public_metrics']['impression_count'] ?? 0),
+                    'author' => '@'.($author['username'] ?? 'unknown'),
+                    'likes' => (int) ($tweet['public_metrics']['like_count'] ?? 0),
+                    'comments' => (int) ($tweet['public_metrics']['reply_count'] ?? 0),
+                    'views' => (int) ($tweet['public_metrics']['impression_count'] ?? 0),
                     'external_id' => $tweet['id'] ?? uniqid('tweet_'),
                     'sentiment' => 'neutral',
                     'score' => 0.5,
@@ -204,7 +203,8 @@ class TwitterService
 
             return $results;
         } catch (\Exception $e) {
-            Log::error('Twitter search error: ' . $e->getMessage());
+            Log::error('Twitter search error: '.$e->getMessage());
+
             return [];
         }
     }

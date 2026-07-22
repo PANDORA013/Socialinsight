@@ -2,11 +2,10 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
-
 class TikTokService
 {
     protected $clientKey;
+
     protected $clientSecret;
 
     public function __construct()
@@ -56,20 +55,20 @@ class TikTokService
         for ($i = 0; $i < min($count, count($templates)); $i++) {
             $sentiment = $i < 5 ? 'positive' : ($i < 7 ? 'negative' : 'neutral');
             $score = $sentiment === 'positive' ? rand(70, 95) / 100 : ($sentiment === 'negative' ? rand(10, 30) / 100 : rand(40, 60) / 100);
-            $username = 'tiktokuser' . rand(1, 999);
+            $username = 'tiktokuser'.rand(1, 999);
 
             $results[] = [
                 'platform' => 'tiktok',
-                'post_id' => '7' . rand(100000000000000000, 999999999999999999), // TikTok video ID format
+                'post_id' => '7'.rand(100000000000000000, 999999999999999999), // TikTok video ID format
                 'content' => $templates[$i],
-                'author' => '@' . $username,
+                'author' => '@'.$username,
                 'likes' => rand(100, 50000),
                 'comments' => rand(10, 5000),
                 'views' => rand(10000, 1000000),
-                'external_id' => 'tiktok_' . uniqid(),
+                'external_id' => 'tiktok_'.uniqid(),
                 'sentiment' => $sentiment,
                 'score' => $score,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-' . rand(1, 30) . ' days')),
+                'created_at' => date('Y-m-d H:i:s', strtotime('-'.rand(1, 30).' days')),
                 'raw' => ['mock' => true],
             ];
         }

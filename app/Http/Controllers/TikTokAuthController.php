@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 
 class TikTokAuthController extends Controller
@@ -13,7 +13,9 @@ class TikTokAuthController extends Controller
     // TikTok OAuth Credentials (Sandbox for Testing)
     // GANTI dengan kredensial dari TikTok Developer Dashboard
     private $clientKey;
+
     private $clientSecret;
+
     private $redirectUri;
 
     public function __construct()
@@ -26,7 +28,7 @@ class TikTokAuthController extends Controller
 
     /**
      * STEP 1: Redirect user to TikTok OAuth authorization page
-     * 
+     *
      * User clicks "Login with TikTok" → redirects to TikTok login page
      */
     public function redirectToTikTok()
@@ -35,29 +37,30 @@ class TikTokAuthController extends Controller
             // Scopes yang diperlukan untuk trending data
             // HARUS SAMA dengan yang disubmit untuk review
             $scopes = 'user.info.basic,video.list';
-            
+
             // Generate random state untuk security (CSRF protection)
             $state = Str::random(40);
             Session::put('tiktok_oauth_state', $state);
 
             // Build TikTok authorization URL
             $authUrl = 'https://www.tiktok.com/v2/auth/authorize/'
-                . '?client_key=' . $this->clientKey
-                . '&scope=' . urlencode($scopes)
-                . '&response_type=code'
-                . '&redirect_uri=' . urlencode($this->redirectUri)
-                . '&state=' . $state;
+                .'?client_key='.$this->clientKey
+                .'&scope='.urlencode($scopes)
+                .'&response_type=code'
+                .'&redirect_uri='.urlencode($this->redirectUri)
+                .'&state='.$state;
 
             Log::info('TikTok OAuth: Redirecting to TikTok', [
                 'redirect_uri' => $this->redirectUri,
-                'scopes' => $scopes
+                'scopes' => $scopes,
             ]);
 
             // Redirect browser ke TikTok login page
             return redirect()->away($authUrl);
 
         } catch (\Exception $e) {
-            Log::error('TikTok OAuth Redirect Error: ' . $e->getMessage());
+            Log::error('TikTok OAuth Redirect Error: '.$e->getMessage());
+
             return redirect('/')
                 ->with('error', 'Unable to connect to TikTok. Please check your configuration.');
         }
@@ -65,7 +68,7 @@ class TikTokAuthController extends Controller
 
     /**
      * STEP 2: Handle callback from TikTok after user authorizes
-     * 
+     *
      * TikTok redirects back → brings authorization code → exchange for access token
      */
     public function handleTikTokCallback(Request $request)
@@ -73,15 +76,17 @@ class TikTokAuthController extends Controller
         try {
             // 1. Verify state parameter (CSRF protection)
             $state = Session::get('tiktok_oauth_state');
-            if (!$state || $state !== $request->query('state')) {
+            if (! $state || $state !== $request->query('state')) {
                 Log::error('TikTok OAuth: Invalid state parameter');
+
                 return redirect('/')
                     ->with('error', 'Invalid OAuth state. Please try again.');
             }
 
             // 2. Get authorization code from URL
-            if (!$request->has('code')) {
+            if (! $request->has('code')) {
                 Log::error('TikTok OAuth: No authorization code received');
+
                 return redirect('/')
                     ->with('error', 'No authorization code received from TikTok.');
             }
@@ -102,10 +107,11 @@ class TikTokAuthController extends Controller
             if ($response->failed()) {
                 Log::error('TikTok OAuth: Token exchange failed', [
                     'status' => $response->status(),
-                    'body' => $response->body()
+                    'body' => $response->body(),
                 ]);
+
                 return redirect('/')
-                    ->with('error', 'Failed to exchange authorization code: ' . $response->body());
+                    ->with('error', 'Failed to exchange authorization code: '.$response->body());
             }
 
             $tokenData = $response->json();
@@ -114,8 +120,9 @@ class TikTokAuthController extends Controller
             $refreshToken = $tokenData['refresh_token'] ?? null;
             $expiresIn = $tokenData['expires_in'] ?? 86400;
 
-            if (!$accessToken || !$openId) {
+            if (! $accessToken || ! $openId) {
                 Log::error('TikTok OAuth: Missing access token or open_id');
+
                 return redirect('/')
                     ->with('error', 'Invalid token response from TikTok.');
             }
@@ -124,9 +131,9 @@ class TikTokAuthController extends Controller
 
             // 4. Get user info using access token
             $userResponse = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
+                'Authorization' => 'Bearer '.$accessToken,
             ])->get('https://open.tiktokapis.com/v2/user/info/', [
-                'fields' => 'open_id,union_id,avatar_url,display_name'
+                'fields' => 'open_id,union_id,avatar_url,display_name',
             ]);
 
             $userData = $userResponse->successful() ? $userResponse->json()['data']['user'] ?? [] : [];
@@ -151,18 +158,19 @@ class TikTokAuthController extends Controller
             // Clear OAuth state
             Session::forget('tiktok_oauth_state');
 
-            Log::info('TikTok Connected Successfully: ' . $displayName);
+            Log::info('TikTok Connected Successfully: '.$displayName);
 
             // Redirect to dashboard to show user's videos
             return redirect()->route('tiktok.dashboard')
                 ->with('success', 'TikTok account connected successfully! Here are your videos.');
 
         } catch (\Exception $e) {
-            Log::error('TikTok OAuth Callback Error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error('TikTok OAuth Callback Error: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect('/')
-                ->with('error', 'Failed to connect TikTok account: ' . $e->getMessage());
+                ->with('error', 'Failed to connect TikTok account: '.$e->getMessage());
         }
     }
 
@@ -182,7 +190,7 @@ class TikTokAuthController extends Controller
 
     /**
      * Dashboard: Show user's TikTok videos using access token
-     * 
+     *
      * This demonstrates Manage User Access Tokens endpoint
      */
     public function showDashboard()
@@ -191,7 +199,7 @@ class TikTokAuthController extends Controller
         $accessToken = Session::get('tiktok_access_token');
         $displayName = Session::get('tiktok_user.display_name', 'User');
 
-        if (!$accessToken) {
+        if (! $accessToken) {
             // If no token, force login
             return redirect()->route('tiktok.login')
                 ->with('error', 'Please connect your TikTok account first.');
@@ -228,12 +236,13 @@ class TikTokAuthController extends Controller
             if ($response->failed()) {
                 Log::error('TikTok Video API Failed', [
                     'status' => $response->status(),
-                    'body' => $response->body()
+                    'body' => $response->body(),
                 ]);
 
                 // If token expired, clear session
                 if ($response->status() == 401) {
                     Session::forget('tiktok_access_token');
+
                     return redirect()->route('tiktok.login')
                         ->with('error', 'Your TikTok session has expired. Please login again.');
                 }
@@ -241,7 +250,7 @@ class TikTokAuthController extends Controller
                 return view('tiktok-dashboard', [
                     'display_name' => $displayName,
                     'videos' => [],
-                    'error' => 'Failed to fetch videos: ' . $response->body(),
+                    'error' => 'Failed to fetch videos: '.$response->body(),
                 ]);
             }
 
@@ -250,7 +259,7 @@ class TikTokAuthController extends Controller
 
             Log::info('TikTok Videos Fetched', [
                 'count' => count($videos),
-                'user' => $displayName
+                'user' => $displayName,
             ]);
 
             return view('tiktok-dashboard', [
@@ -260,12 +269,12 @@ class TikTokAuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('TikTok Dashboard Error: ' . $e->getMessage());
-            
+            Log::error('TikTok Dashboard Error: '.$e->getMessage());
+
             return view('tiktok-dashboard', [
                 'display_name' => $displayName,
                 'videos' => [],
-                'error' => 'An error occurred: ' . $e->getMessage(),
+                'error' => 'An error occurred: '.$e->getMessage(),
             ]);
         }
     }

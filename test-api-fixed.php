@@ -1,8 +1,8 @@
 <?php
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__.'/vendor/autoload.php';
 
-$app = require_once __DIR__ . '/bootstrap/app.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 echo "\n";
@@ -11,7 +11,7 @@ echo "║           🔧 API TEST - AFTER SSL FIX                         ║\n"
 echo "╚════════════════════════════════════════════════════════════════╝\n";
 echo "\n";
 
-$query = "Taylor Swift";
+$query = 'Taylor Swift';
 $servicesWorking = 0;
 $servicesTotal = 4;
 
@@ -26,19 +26,19 @@ $youtubeService = app('App\Services\YouTubeService');
 
 try {
     $results = $youtubeService->search($query, 3);
-    
+
     if (count($results) > 0) {
         echo "✅ Status: WORKING!\n";
-        echo "📊 Found: " . count($results) . " videos\n";
-        echo "📺 Sample: " . substr($results[0]['content'], 0, 50) . "...\n";
+        echo '📊 Found: '.count($results)." videos\n";
+        echo '📺 Sample: '.substr($results[0]['content'], 0, 50)."...\n";
         $servicesWorking++;
     } else {
         echo "⚠️  Status: No results (Check API Key or quota)\n";
-        echo "🔑 API Key: " . substr(config('services.youtube.api_key'), 0, 20) . "...\n";
+        echo '🔑 API Key: '.substr(config('services.youtube.api_key'), 0, 20)."...\n";
     }
 } catch (Exception $e) {
     echo "❌ Status: ERROR\n";
-    echo "🚨 Error: " . $e->getMessage() . "\n";
+    echo '🚨 Error: '.$e->getMessage()."\n";
 }
 
 echo "\n";
@@ -61,19 +61,19 @@ if (empty($bearerToken)) {
 } else {
     try {
         $results = $twitterService->search($query, 3);
-        
+
         if (count($results) > 0) {
             echo "✅ Status: WORKING!\n";
-            echo "📊 Found: " . count($results) . " tweets\n";
-            echo "🐦 Sample: " . substr($results[0]['content'], 0, 50) . "...\n";
+            echo '📊 Found: '.count($results)." tweets\n";
+            echo '🐦 Sample: '.substr($results[0]['content'], 0, 50)."...\n";
             $servicesWorking++;
         } else {
             echo "⚠️  Status: No results (Check bearer token or quota)\n";
-            echo "🔑 Bearer: " . substr($bearerToken, 0, 30) . "...\n";
+            echo '🔑 Bearer: '.substr($bearerToken, 0, 30)."...\n";
         }
     } catch (Exception $e) {
         echo "❌ Status: ERROR\n";
-        echo "🚨 Error: " . $e->getMessage() . "\n";
+        echo '🚨 Error: '.$e->getMessage()."\n";
     }
 }
 
@@ -90,18 +90,18 @@ $tiktokService = app('App\Services\TikTokService');
 
 try {
     $results = $tiktokService->search($query, 3);
-    
+
     if (count($results) > 0) {
         echo "✅ Status: WORKING (Mock Data)\n";
-        echo "📊 Generated: " . count($results) . " videos\n";
-        echo "🎵 Sample: " . substr($results[0]['content'], 0, 50) . "...\n";
+        echo '📊 Generated: '.count($results)." videos\n";
+        echo '🎵 Sample: '.substr($results[0]['content'], 0, 50)."...\n";
         $servicesWorking++;
     } else {
         echo "❌ Status: Failed to generate mock data\n";
     }
 } catch (Exception $e) {
     echo "❌ Status: ERROR\n";
-    echo "🚨 Error: " . $e->getMessage() . "\n";
+    echo '🚨 Error: '.$e->getMessage()."\n";
 }
 
 echo "\n";
@@ -117,18 +117,18 @@ $instagramService = app('App\Services\InstagramService');
 
 try {
     $results = $instagramService->search($query, 3);
-    
+
     if (count($results) > 0) {
         echo "✅ Status: WORKING (Mock Data)\n";
-        echo "📊 Generated: " . count($results) . " posts\n";
-        echo "📸 Sample: " . substr($results[0]['content'], 0, 50) . "...\n";
+        echo '📊 Generated: '.count($results)." posts\n";
+        echo '📸 Sample: '.substr($results[0]['content'], 0, 50)."...\n";
         $servicesWorking++;
     } else {
         echo "❌ Status: Failed to generate mock data\n";
     }
 } catch (Exception $e) {
     echo "❌ Status: ERROR\n";
-    echo "🚨 Error: " . $e->getMessage() . "\n";
+    echo '🚨 Error: '.$e->getMessage()."\n";
 }
 
 echo "\n";
@@ -143,17 +143,17 @@ echo "╠═══════════════════════�
 $percentage = ($servicesWorking / $servicesTotal) * 100;
 
 echo "║  Services Working: {$servicesWorking}/{$servicesTotal} ({$percentage}%)";
-echo str_repeat(" ", 63 - strlen("║  Services Working: {$servicesWorking}/{$servicesTotal} ({$percentage}%)")) . "║\n";
+echo str_repeat(' ', 63 - strlen("║  Services Working: {$servicesWorking}/{$servicesTotal} ({$percentage}%)"))."║\n";
 
 if ($servicesWorking >= 3) {
-    echo "║  Status: ✅ EXCELLENT - System Ready!";
+    echo '║  Status: ✅ EXCELLENT - System Ready!';
 } elseif ($servicesWorking >= 2) {
-    echo "║  Status: ⚠️  GOOD - Core Features Working";
+    echo '║  Status: ⚠️  GOOD - Core Features Working';
 } else {
-    echo "║  Status: ❌ NEEDS ATTENTION";
+    echo '║  Status: ❌ NEEDS ATTENTION';
 }
 
-echo str_repeat(" ", 63 - strlen("║  Status: ")) . "║\n";
+echo str_repeat(' ', 63 - strlen('║  Status: '))."║\n";
 echo "╚════════════════════════════════════════════════════════════════╝\n";
 
 echo "\n";
@@ -164,7 +164,7 @@ echo "\n";
 if ($servicesWorking < 4) {
     echo "📝 NEXT STEPS:\n";
     echo "─────────────────────────────────────────\n";
-    
+
     if (empty($bearerToken)) {
         echo "\n🔴 HIGH PRIORITY: Add Twitter Bearer Token\n";
         echo "   1. Visit: https://developer.twitter.com/en/portal/dashboard\n";
@@ -174,7 +174,7 @@ if ($servicesWorking < 4) {
         echo "      TWITTER_BEARER_TOKEN=your_bearer_token_here\n";
         echo "   5. Run: php artisan config:clear\n";
     }
-    
+
     echo "\n";
 }
 

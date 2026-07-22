@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\TrendController;
-use App\Http\Controllers\TikTokAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TikTokAuthController;
+use App\Http\Controllers\TrendController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,8 +21,12 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 Route::view('/tiktok-login-demo', 'tiktok-login-demo')->name('tiktok.demo');
 
 // Trend Analysis
-Route::post('/analyze/trend', [TrendController::class, 'analyzeTrend'])->name('analyze.trend');
-Route::get('/export/trend', [TrendController::class, 'exportTrend'])->name('export.trend');
+Route::post('/analyze/trend', [TrendController::class, 'analyzeTrend'])
+    ->middleware('throttle:trend-analysis')
+    ->name('analyze.trend');
+Route::get('/export/trend', [TrendController::class, 'exportTrend'])
+    ->middleware('throttle:trend-export')
+    ->name('export.trend');
 
 // TikTok OAuth Routes
 Route::get('/auth/tiktok', [TikTokAuthController::class, 'redirectToTikTok'])->name('tiktok.login');

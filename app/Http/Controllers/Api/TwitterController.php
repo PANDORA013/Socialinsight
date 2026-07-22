@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\TwitterService;
 use App\Services\SentimentService;
+use App\Services\TwitterService;
 use Illuminate\Http\Request;
 
 class TwitterController extends Controller
 {
     protected $twitterService;
+
     protected $sentimentService;
 
     public function __construct(TwitterService $twitterService, SentimentService $sentimentService)
@@ -33,6 +34,7 @@ class TwitterController extends Controller
 
             $analyzed = array_map(function ($reply) {
                 $sentiment = $this->sentimentService->analyze($reply['text']);
+
                 return [
                     'id' => $reply['id'],
                     'author' => $reply['author'],

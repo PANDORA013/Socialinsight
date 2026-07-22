@@ -56,13 +56,13 @@ class StatsController extends Controller
     public function export()
     {
         $posts = Post::all();
-        
+
         $csv = "Platform,External ID,Author,Content,Sentiment,Score,Views,Likes,Comments,Created At\n";
-        
+
         foreach ($posts as $post) {
             $content = str_replace(["\n", "\r", '"'], [' ', ' ', '""'], substr($post->content ?? '', 0, 200));
             $csv .= sprintf(
-                '%s,%s,%s,"%s",%s,%s,%s,%s,%s,%s' . "\n",
+                '%s,%s,%s,"%s",%s,%s,%s,%s,%s,%s'."\n",
                 $post->platform,
                 $post->external_id,
                 $post->author ?? '',
@@ -78,7 +78,7 @@ class StatsController extends Controller
 
         return response($csv, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="socialinsight-posts-' . date('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="socialinsight-posts-'.date('Y-m-d').'.csv"',
         ]);
     }
 }

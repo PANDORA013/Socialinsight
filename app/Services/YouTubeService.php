@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 class YouTubeService
 {
     protected $apiKey;
+
     protected $baseUrl = 'https://www.googleapis.com/youtube/v3';
 
     public function __construct()
@@ -22,11 +23,11 @@ class YouTubeService
     {
         $pattern = '/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/';
         preg_match($pattern, $url, $matches);
-        
-        if (!isset($matches[1])) {
+
+        if (! isset($matches[1])) {
             throw new \Exception('Invalid YouTube URL');
         }
-        
+
         return $matches[1];
     }
 
@@ -35,8 +36,7 @@ class YouTubeService
      */
     public function getComments($videoId, $maxResults = 100)
     {
-        // Disable SSL verification for development on Windows/XAMPP
-        $response = Http::withoutVerifying()->get("{$this->baseUrl}/commentThreads", [
+        $response = Http::timeout(10)->retry(2, 250)->get("{$this->baseUrl}/commentThreads", [
             'key' => $this->apiKey,
             'videoId' => $videoId,
             'part' => 'snippet',
@@ -44,8 +44,8 @@ class YouTubeService
             'textFormat' => 'plainText',
         ]);
 
-        if (!$response->successful()) {
-            throw new \Exception('Failed to fetch YouTube comments: ' . $response->body());
+        if (! $response->successful()) {
+            throw new \Exception('Failed to fetch YouTube comments: '.$response->body());
         }
 
         $data = $response->json();
@@ -71,8 +71,7 @@ class YouTubeService
     public function search($topic, $maxResults = 10)
     {
         try {
-            // Search for videos (SSL verification disabled for Windows/XAMPP)
-            $response = Http::withoutVerifying()->get("{$this->baseUrl}/search", [
+            $response = Http::timeout(10)->retry(2, 250)->get("{$this->baseUrl}/search", [
                 'key' => $this->apiKey,
                 'q' => $topic,
                 'part' => 'snippet',
@@ -81,7 +80,7 @@ class YouTubeService
                 'order' => 'relevance',
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return [];
             }
 
@@ -90,10 +89,11 @@ class YouTubeService
 
             foreach ($data['items'] ?? [] as $item) {
                 $videoId = $item['id']['videoId'] ?? null;
-                if (!$videoId) continue;
+                if (! $videoId) {
+                    continue;
+                }
 
-                // Get video statistics (SSL verification disabled)
-                $statsResponse = Http::withoutVerifying()->get("{$this->baseUrl}/videos", [
+                $statsResponse = Http::timeout(10)->retry(2, 250)->get("{$this->baseUrl}/videos", [
                     'key' => $this->apiKey,
                     'id' => $videoId,
                     'part' => 'statistics,snippet',
@@ -106,9 +106,9 @@ class YouTubeService
                             'platform' => 'youtube',  // ← Added platform identifier
                             'content' => $videoData['snippet']['title'] ?? 'No title',
                             'author' => $videoData['snippet']['channelTitle'] ?? 'Unknown',
-                            'likes' => (int)($videoData['statistics']['likeCount'] ?? 0),
-                            'comments' => (int)($videoData['statistics']['commentCount'] ?? 0),
-                            'views' => (int)($videoData['statistics']['viewCount'] ?? 0),
+                            'likes' => (int) ($videoData['statistics']['likeCount'] ?? 0),
+                            'comments' => (int) ($videoData['statistics']['commentCount'] ?? 0),
+                            'views' => (int) ($videoData['statistics']['viewCount'] ?? 0),
                             'external_id' => $videoId,
                             'sentiment' => 'neutral', // Will be analyzed later
                             'score' => 0.5,
@@ -120,7 +120,8 @@ class YouTubeService
 
             return $results;
         } catch (\Exception $e) {
-            Log::error('YouTube search error: ' . $e->getMessage());
+            Log::error('YouTube search error: '.$e->getMessage());
+
             return [];
         }
     }

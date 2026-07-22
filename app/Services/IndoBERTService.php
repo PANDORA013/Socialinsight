@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
 /**
  * IndoBERT Sentiment Analysis Service
- * 
+ *
  * Service ini mengintegrasikan model Deep Learning IndoBERT
  * untuk analisis sentimen berbahasa Indonesia yang lebih akurat.
- * 
+ *
  * Features:
  * - Deep Learning based sentiment analysis
  * - Support untuk teks panjang (auto truncation)
@@ -21,7 +21,7 @@ class IndoBERTService
 {
     /**
      * Path ke Python interpreter
-     * 
+     *
      * Windows: 'python' atau 'python.exe' atau 'C:\Python\python.exe'
      * Linux/Mac: 'python3' atau '/usr/bin/python3'
      */
@@ -52,31 +52,31 @@ class IndoBERTService
 
     /**
      * Analisis sentimen menggunakan IndoBERT
-     * 
-     * @param string $text Teks yang akan dianalisis
+     *
+     * @param  string  $text  Teks yang akan dianalisis
      * @return array Result dengan format:
-     *   [
-     *     'status' => 'success'|'error',
-     *     'label' => 'positive'|'neutral'|'negative',
-     *     'score' => float (0-1),
-     *     'details' => ['positive' => float, 'neutral' => float, 'negative' => float]
-     *   ]
+     *               [
+     *               'status' => 'success'|'error',
+     *               'label' => 'positive'|'neutral'|'negative',
+     *               'score' => float (0-1),
+     *               'details' => ['positive' => float, 'neutral' => float, 'negative' => float]
+     *               ]
      */
     public function analyzeSentiment($text)
     {
         // Validasi input
-        if (empty($text) || !is_string($text)) {
+        if (empty($text) || ! is_string($text)) {
             return [
                 'status' => 'error',
-                'message' => 'Text input tidak valid'
+                'message' => 'Text input tidak valid',
             ];
         }
 
         // Check apakah IndoBERT tersedia
-        if (!$this->checkAvailability()) {
+        if (! $this->checkAvailability()) {
             return [
                 'status' => 'error',
-                'message' => 'IndoBERT tidak tersedia. Install Python dependencies: pip install transformers torch'
+                'message' => 'IndoBERT tidak tersedia. Install Python dependencies: pip install transformers torch',
             ];
         }
 
@@ -85,7 +85,7 @@ class IndoBERTService
             $process = new Process([
                 $this->pythonPath,
                 $this->scriptPath,
-                $text
+                $text,
             ]);
 
             $process->setTimeout($this->timeout);
@@ -104,7 +104,7 @@ class IndoBERTService
                 return [
                     'status' => 'error',
                     'message' => 'Gagal mem-parsing output Python',
-                    'raw_output' => $output
+                    'raw_output' => $output,
                 ];
             }
 
@@ -114,24 +114,24 @@ class IndoBERTService
             return [
                 'status' => 'error',
                 'message' => 'Proses Python gagal dieksekusi',
-                'details' => $exception->getMessage()
+                'details' => $exception->getMessage(),
             ];
         } catch (\Exception $exception) {
             return [
                 'status' => 'error',
                 'message' => 'Error tidak terduga',
-                'details' => $exception->getMessage()
+                'details' => $exception->getMessage(),
             ];
         }
     }
 
     /**
      * Batch analysis untuk multiple texts
-     * 
+     *
      * CATATAN: Ini akan LAMBAT karena setiap text memuat model dari awal.
      * Untuk production, gunakan Flask API approach.
-     * 
-     * @param array $texts Array of texts
+     *
+     * @param  array  $texts  Array of texts
      * @return array Array of results
      */
     public function analyzeBatch(array $texts)
@@ -147,7 +147,7 @@ class IndoBERTService
 
     /**
      * Check apakah IndoBERT tersedia dan bisa digunakan
-     * 
+     *
      * @return bool
      */
     public function checkAvailability()
@@ -159,17 +159,18 @@ class IndoBERTService
 
         try {
             // Check apakah script Python exists
-            if (!file_exists($this->scriptPath)) {
+            if (! file_exists($this->scriptPath)) {
                 $this->isAvailable = false;
+
                 return false;
             }
 
             // Test dengan teks sederhana
-            $testText = "Test";
+            $testText = 'Test';
             $process = new Process([
                 $this->pythonPath,
                 $this->scriptPath,
-                $testText
+                $testText,
             ]);
 
             $process->setTimeout(10); // Short timeout untuk test
@@ -179,10 +180,10 @@ class IndoBERTService
             if ($process->isSuccessful()) {
                 $output = $process->getOutput();
                 $result = json_decode($output, true);
-                
+
                 $this->isAvailable = (
-                    $result !== null && 
-                    isset($result['status']) && 
+                    $result !== null &&
+                    isset($result['status']) &&
                     $result['status'] === 'success'
                 );
             } else {
@@ -198,7 +199,7 @@ class IndoBERTService
 
     /**
      * Get status IndoBERT
-     * 
+     *
      * @return array
      */
     public function getStatus()
@@ -210,17 +211,17 @@ class IndoBERTService
             'python_path' => $this->pythonPath,
             'script_path' => $this->scriptPath,
             'script_exists' => file_exists($this->scriptPath),
-            'message' => $available 
-                ? 'IndoBERT siap digunakan' 
-                : 'IndoBERT tidak tersedia. Install: pip install transformers torch'
+            'message' => $available
+                ? 'IndoBERT siap digunakan'
+                : 'IndoBERT tidak tersedia. Install: pip install transformers torch',
         ];
     }
 
     /**
      * Convert IndoBERT result ke format yang sama dengan Naive Bayes
      * (untuk kompatibilitas dengan kode existing)
-     * 
-     * @param array $indoBertResult
+     *
+     * @param  array  $indoBertResult
      * @return string 'positive'|'negative'|'neutral'
      */
     public function convertToSimpleLabel($indoBertResult)

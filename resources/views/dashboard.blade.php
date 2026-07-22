@@ -1,100 +1,91 @@
-@extends('layouts.app')
+@extends('layouts.app-tailwind')
 
 @section('title', 'Dashboard')
 
 @section('content')
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="display-4 fw-bold">Dashboard</h1>
-        <p class="text-muted">Social media sentiment analysis overview</p>
-    </div>
-</div>
+<section class="min-h-screen bg-slate-950">
+    <div class="mx-auto max-w-6xl px-6 py-8">
+        <nav class="mb-8 flex items-center justify-between">
+            <a href="{{ route('home') }}" class="text-xl font-black tracking-tight text-white">SocialInsight</a>
+            <a href="{{ route('home') }}" class="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-950 hover:bg-pink-100">
+                Analisis Tren
+            </a>
+        </nav>
 
-<!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <h5 class="card-title">Total Posts</h5>
-                <h2 class="display-4">{{ $stats['total_posts'] }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <h5 class="card-title">Positive</h5>
-                <h2 class="display-4">{{ $stats['positive'] }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body">
-                <h5 class="card-title">Negative</h5>
-                <h2 class="display-4">{{ $stats['negative'] }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <h5 class="card-title">Neutral</h5>
-                <h2 class="display-4">{{ $stats['neutral'] }}</h2>
-            </div>
-        </div>
-    </div>
-</div>
+        <header class="rounded-3xl border border-white/10 bg-white/10 p-6">
+            <p class="text-sm font-semibold text-pink-200">Dashboard demo</p>
+            <h1 class="mt-3 text-4xl font-black text-white md:text-6xl">Status platform</h1>
+            <p class="mt-4 max-w-2xl text-slate-300">
+                SocialInsight berjalan tanpa login. Halaman ini menunjukkan kesiapan platform dan cara kerja analisis, bukan riwayat raw post global.
+            </p>
+        </header>
 
-<!-- Recent Posts -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h4 class="mb-0">Recent Posts</h4>
-            </div>
-            <div class="card-body">
-                @if($posts->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Platform</th>
-                                    <th>Author</th>
-                                    <th>Content</th>
-                                    <th>Sentiment</th>
-                                    <th>Score</th>
-                                    <th>Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($posts as $post)
-                                    <tr>
-                                        <td>
-                                            <span class="badge bg-secondary">{{ strtoupper($post->platform) }}</span>
-                                        </td>
-                                        <td>{{ $post->author }}</td>
-                                        <td>{{ Str::limit($post->content, 50) }}</td>
-                                        <td>
-                                            <span class="badge sentiment-{{ $post->sentiment }}">
-                                                {{ ucfirst($post->sentiment) }}
-                                            </span>
-                                        </td>
-                                        <td>{{ number_format($post->sentiment_score, 2) }}</td>
-                                        <td>{{ $post->created_at->diffForHumans() }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+        <section class="mt-6 grid gap-4 md:grid-cols-4">
+            @foreach($platformStatuses as $key => $platform)
+                <article class="rounded-3xl bg-white p-5 text-slate-950 shadow-xl">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-bold uppercase text-slate-500">{{ $key }}</p>
+                            <h2 class="mt-2 text-xl font-black">{{ $platform['label'] }}</h2>
+                        </div>
+                        <span class="rounded-full px-3 py-1 text-xs font-black {{ $platform['mode'] === 'real' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
+                            {{ strtoupper($platform['mode']) }}
+                        </span>
                     </div>
-                @else
-                    <div class="text-center py-5">
-                        <p class="text-muted">No posts analyzed yet. Start by analyzing some social media content!</p>
-                        <a href="{{ route('youtube.form') }}" class="btn btn-primary">Analyze YouTube Comments</a>
+                    <p class="mt-4 text-sm leading-6 text-slate-600">
+                        @if($platform['mode'] === 'real')
+                            Credential tersedia dan siap dipakai.
+                        @elseif($platform['mode'] === 'maintenance')
+                            Coming Soon / Maintenance. Platform ini belum dipakai untuk analisis.
+                        @else
+                            Credential belum tersedia, flow akan memakai fallback demo yang ditandai jelas.
+                        @endif
+                    </p>
+                </article>
+            @endforeach
+        </section>
+
+        <section class="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <div class="rounded-3xl bg-white p-6 text-slate-950 shadow-xl">
+                <p class="text-sm font-black uppercase tracking-wide text-pink-600">Batas publik</p>
+                <div class="mt-5 grid gap-3">
+                    <div class="rounded-2xl bg-slate-100 p-4">
+                        <p class="text-2xl font-black">{{ $demoMetrics['platforms'] }}</p>
+                        <p class="text-sm text-slate-600">platform tersedia</p>
                     </div>
-                @endif
+                    <div class="rounded-2xl bg-slate-100 p-4">
+                        <p class="text-2xl font-black">{{ $demoMetrics['maxEvidence'] }}</p>
+                        <p class="text-sm text-slate-600">maksimal bukti per export</p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-100 p-4">
+                        <p class="text-2xl font-black">{{ $demoMetrics['cacheMinutes'] }} menit</p>
+                        <p class="text-sm text-slate-600">hasil sementara untuk export</p>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <div class="rounded-3xl bg-white p-6 text-slate-950 shadow-xl">
+                <p class="text-sm font-black uppercase tracking-wide text-pink-600">Cara kerja analisis</p>
+                <div class="mt-5 space-y-4">
+                    @foreach($pipelineSteps as $index => $step)
+                        <div class="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white">{{ $index + 1 }}</span>
+                            <div>
+                                <h2 class="font-black">{{ $step }}</h2>
+                                <p class="text-sm text-slate-600">Tahap ini menjaga hasil tetap ringkas, relevan, dan bisa dipakai untuk keputusan konten.</p>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
+        <section class="mt-6 rounded-3xl border border-white/10 bg-white/10 p-6">
+            <h2 class="text-2xl font-black text-white">Privasi no-login</h2>
+            <p class="mt-3 max-w-3xl text-slate-300">
+                Flow utama tidak menyimpan raw post permanen. Hasil disimpan sementara hanya untuk export saat itu, lalu kedaluwarsa otomatis.
+            </p>
+        </section>
     </div>
-</div>
+</section>
 @endsection

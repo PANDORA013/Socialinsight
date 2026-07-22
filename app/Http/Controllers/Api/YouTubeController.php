@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\YouTubeService;
 use App\Services\SentimentService;
+use App\Services\YouTubeService;
 use Illuminate\Http\Request;
 
 class YouTubeController extends Controller
 {
     protected $youtubeService;
+
     protected $sentimentService;
 
     public function __construct(YouTubeService $youtubeService, SentimentService $sentimentService)
@@ -33,6 +34,7 @@ class YouTubeController extends Controller
 
             $analyzed = array_map(function ($comment) {
                 $sentiment = $this->sentimentService->analyze($comment['text']);
+
                 return [
                     'id' => $comment['id'],
                     'author' => $comment['author'],

@@ -1,12 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\InstagramController;
+use App\Http\Controllers\Api\StatsController;
+use App\Http\Controllers\Api\TikTokController;
+use App\Http\Controllers\Api\TwitterController;
+use App\Http\Controllers\Api\YouTubeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\YouTubeController;
-use App\Http\Controllers\Api\TwitterController;
-use App\Http\Controllers\Api\InstagramController;
-use App\Http\Controllers\Api\TikTokController;
-use App\Http\Controllers\Api\StatsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,21 +49,23 @@ Route::get('/tiktok/check-config', function () {
 Route::prefix('test')->group(function () {
     Route::get('/indobert-status', function () {
         $service = app(\App\Services\IndoBERTService::class);
+
         return response()->json($service->getStatus());
     });
-    
+
     Route::post('/indobert-analyze', function (Request $request) {
         $service = app(\App\Services\IndoBERTService::class);
         $text = $request->input('text');
-        
+
         if (empty($text)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Text is required'
+                'message' => 'Text is required',
             ], 400);
         }
-        
+
         $result = $service->analyzeSentiment($text);
+
         return response()->json($result);
     });
 });

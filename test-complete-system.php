@@ -1,49 +1,49 @@
 <?php
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__.'/vendor/autoload.php';
 
-$app = require_once __DIR__ . '/bootstrap/app.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 use App\Services\DataFilteringService;
-use App\Services\NaiveBayesService;
-use App\Services\KMeansClusteringService;
-use App\Services\TikTokService;
 use App\Services\InstagramService;
+use App\Services\KMeansClusteringService;
+use App\Services\NaiveBayesService;
+use App\Services\TikTokService;
 
 echo "\n╔═══════════════════════════════════════════════════════════════════════╗\n";
 echo "║  🎓 SOCIALINSIGHT - DEMO 5-STAGE FILTERING + MACHINE LEARNING       ║\n";
 echo "╚═══════════════════════════════════════════════════════════════════════╝\n\n";
 
-$query = "Taylor Swift";
+$query = 'Taylor Swift';
 echo "🔍 Query: {$query}\n";
-echo str_repeat("─", 75) . "\n\n";
+echo str_repeat('─', 75)."\n\n";
 
 // ============================================================================
 // STEP 1: Data Collection
 // ============================================================================
 echo "STEP 1: 📥 DATA COLLECTION\n";
-echo str_repeat("─", 75) . "\n";
+echo str_repeat('─', 75)."\n";
 
-$tiktokService = new TikTokService();
-$instagramService = new InstagramService();
+$tiktokService = new TikTokService;
+$instagramService = new InstagramService;
 
 $tiktokPosts = $tiktokService->search($query, 10);
 $instagramPosts = $instagramService->search($query, 10);
 
 $allRawPosts = array_merge($tiktokPosts, $instagramPosts);
 
-echo "✅ TikTok: " . count($tiktokPosts) . " posts\n";
-echo "✅ Instagram: " . count($instagramPosts) . " posts\n";
-echo "📊 Total Raw Data: " . count($allRawPosts) . " posts\n\n";
+echo '✅ TikTok: '.count($tiktokPosts)." posts\n";
+echo '✅ Instagram: '.count($instagramPosts)." posts\n";
+echo '📊 Total Raw Data: '.count($allRawPosts)." posts\n\n";
 
 // ============================================================================
 // STEP 2: 5-Stage Filtering
 // ============================================================================
 echo "STEP 2: 🔧 5-STAGE FILTERING PROCESS\n";
-echo str_repeat("─", 75) . "\n";
+echo str_repeat('─', 75)."\n";
 
-$filteringService = new DataFilteringService();
+$filteringService = new DataFilteringService;
 $filteredResult = $filteringService->processData($allRawPosts, $query);
 
 $filteredPosts = $filteredResult['data'];
@@ -67,9 +67,9 @@ echo "   Retention Rate: {$metrics['retention_rate']}%\n\n";
 // STEP 3: Naive Bayes Sentiment Analysis
 // ============================================================================
 echo "STEP 3: 🤖 NAIVE BAYES SENTIMENT ANALYSIS\n";
-echo str_repeat("─", 75) . "\n";
+echo str_repeat('─', 75)."\n";
 
-$naiveBayesService = new NaiveBayesService();
+$naiveBayesService = new NaiveBayesService;
 $sentimentAnalysis = $naiveBayesService->analyzeSentimentDistribution($filteredPosts);
 
 echo "📊 Sentiment Distribution:\n";
@@ -77,7 +77,7 @@ echo "   Positive: {$sentimentAnalysis['distribution']['positive']} posts ({$sen
 echo "   Negative: {$sentimentAnalysis['distribution']['negative']} posts ({$sentimentAnalysis['percentages']['negative']}%)\n";
 echo "   Neutral: {$sentimentAnalysis['distribution']['neutral']} posts ({$sentimentAnalysis['percentages']['neutral']}%)\n";
 echo "\n";
-echo "   Overall Sentiment: " . strtoupper($sentimentAnalysis['overall_sentiment']) . "\n";
+echo '   Overall Sentiment: '.strtoupper($sentimentAnalysis['overall_sentiment'])."\n";
 echo "   Average Score: {$sentimentAnalysis['average_score']}\n";
 echo "\n";
 
@@ -86,12 +86,12 @@ if (count($filteredPosts) > 0) {
     echo "📝 Sample Classification:\n";
     $sample = $filteredPosts[0];
     $result = $naiveBayesService->classify($sample['content']);
-    
-    echo "   Content: \"" . substr($sample['content'], 0, 60) . "...\"\n";
-    echo "   Prediction: {$result['sentiment']} (confidence: " . round($result['confidence'] * 100, 1) . "%)\n";
+
+    echo '   Content: "'.substr($sample['content'], 0, 60)."...\"\n";
+    echo "   Prediction: {$result['sentiment']} (confidence: ".round($result['confidence'] * 100, 1)."%)\n";
     echo "   Probabilities:\n";
     foreach ($result['probabilities'] as $class => $prob) {
-        echo "      - {$class}: " . round($prob * 100, 1) . "%\n";
+        echo "      - {$class}: ".round($prob * 100, 1)."%\n";
     }
     echo "\n";
 }
@@ -100,9 +100,9 @@ if (count($filteredPosts) > 0) {
 // STEP 4: K-Means Clustering
 // ============================================================================
 echo "STEP 4: 📊 K-MEANS CLUSTERING\n";
-echo str_repeat("─", 75) . "\n";
+echo str_repeat('─', 75)."\n";
 
-$kmeansService = new KMeansClusteringService();
+$kmeansService = new KMeansClusteringService;
 $clusteringResult = $kmeansService->setK(4)->cluster($filteredPosts);
 
 echo "🎯 Clustering Results:\n";
@@ -111,9 +111,9 @@ echo "   Total Items: {$clusteringResult['total_items']}\n";
 echo "\n";
 
 foreach ($clusteringResult['clusters'] as $idx => $cluster) {
-    echo "   Cluster " . ($idx + 1) . ": {$cluster['name']}\n";
+    echo '   Cluster '.($idx + 1).": {$cluster['name']}\n";
     echo "      Size: {$cluster['size']} posts\n";
-    echo "      Keywords: " . implode(', ', $cluster['keywords']) . "\n";
+    echo '      Keywords: '.implode(', ', $cluster['keywords'])."\n";
     echo "\n";
 }
 

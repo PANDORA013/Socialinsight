@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\YouTubeService;
-use App\Services\TwitterService;
 use App\Services\SentimentService;
-use App\Models\Post;
+use App\Services\TwitterService;
+use App\Services\YouTubeService;
 use Illuminate\Http\Request;
 
 class SocialController extends Controller
 {
     protected $youtubeService;
+
     protected $twitterService;
+
     protected $sentimentService;
 
     public function __construct(
-        YouTubeService $youtubeService, 
+        YouTubeService $youtubeService,
         TwitterService $twitterService,
         SentimentService $sentimentService
     ) {
@@ -45,23 +46,23 @@ class SocialController extends Controller
             $videoId = $this->youtubeService->extractVideoId($request->video_url);
             $comments = $this->youtubeService->getComments($videoId);
 
-            foreach ($comments as $comment) {
+            $analyzed = collect($comments)->map(function ($comment) {
                 $sentiment = $this->sentimentService->analyze($comment['text']);
-                
-                Post::create([
+
+                return [
                     'platform' => 'youtube',
                     'content' => $comment['text'],
                     'author' => $comment['author'],
                     'sentiment' => $sentiment['label'],
                     'sentiment_score' => $sentiment['score'],
                     'external_id' => $comment['id'],
-                ]);
-            }
+                ];
+            });
 
             return redirect()->route('dashboard')
-                ->with('success', 'YouTube comments analyzed successfully!');
+                ->with('success', $analyzed->count().' YouTube comments analyzed without permanent raw storage.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Error: ' . $e->getMessage());
+            return back()->with('error', 'Error: '.$e->getMessage());
         }
     }
 
@@ -86,23 +87,23 @@ class SocialController extends Controller
             $tweetId = $this->twitterService->extractTweetId($request->tweet_url);
             $replies = $this->twitterService->getReplies($tweetId);
 
-            foreach ($replies as $reply) {
+            $analyzed = collect($replies)->map(function ($reply) {
                 $sentiment = $this->sentimentService->analyze($reply['text']);
-                
-                Post::create([
+
+                return [
                     'platform' => 'twitter',
                     'content' => $reply['text'],
                     'author' => $reply['author'],
                     'sentiment' => $sentiment['label'],
                     'sentiment_score' => $sentiment['score'],
                     'external_id' => $reply['id'],
-                ]);
-            }
+                ];
+            });
 
             return redirect()->route('dashboard')
-                ->with('success', 'Twitter/X replies analyzed successfully!');
+                ->with('success', $analyzed->count().' Twitter/X replies analyzed without permanent raw storage.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Error: ' . $e->getMessage());
+            return back()->with('error', 'Error: '.$e->getMessage());
         }
     }
 

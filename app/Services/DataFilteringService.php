@@ -28,7 +28,7 @@ class DataFilteringService
             'noise' => 0,
             'sentiment' => 0,
             'temporal' => 0,
-        ]
+        ],
     ];
 
     /**
@@ -37,48 +37,48 @@ class DataFilteringService
     public function processData($data, $query, $options = [])
     {
         $this->stats['original_count'] = count($data);
-        
-        Log::info("Starting 5-stage filtering process", [
+
+        Log::info('Starting 5-stage filtering process', [
             'original_count' => $this->stats['original_count'],
-            'query' => $query
+            'query' => $query,
         ]);
 
         // Tahap 1: Filter Relevansi
         $data = $this->filterRelevance($data, $query);
         $this->stats['after_relevance'] = count($data);
-        $this->stats['removed_by_stage']['relevance'] = 
+        $this->stats['removed_by_stage']['relevance'] =
             $this->stats['original_count'] - $this->stats['after_relevance'];
 
         // Tahap 2: Remove Duplikasi
         $data = $this->removeDuplicates($data);
         $this->stats['after_deduplication'] = count($data);
-        $this->stats['removed_by_stage']['deduplication'] = 
+        $this->stats['removed_by_stage']['deduplication'] =
             $this->stats['after_relevance'] - $this->stats['after_deduplication'];
 
         // Tahap 3: Remove Noise & Spam
         $data = $this->removeNoise($data);
         $this->stats['after_noise_removal'] = count($data);
-        $this->stats['removed_by_stage']['noise'] = 
+        $this->stats['removed_by_stage']['noise'] =
             $this->stats['after_deduplication'] - $this->stats['after_noise_removal'];
 
         // Tahap 4: Filter berdasarkan Sentimen (opini only)
         $data = $this->filterBySentiment($data);
         $this->stats['after_sentiment_filter'] = count($data);
-        $this->stats['removed_by_stage']['sentiment'] = 
+        $this->stats['removed_by_stage']['sentiment'] =
             $this->stats['after_noise_removal'] - $this->stats['after_sentiment_filter'];
 
         // Tahap 5: Filter Temporal (berdasarkan waktu)
         $daysBack = $options['days_back'] ?? 30;
         $data = $this->filterTemporal($data, $daysBack);
         $this->stats['after_temporal_filter'] = count($data);
-        $this->stats['removed_by_stage']['temporal'] = 
+        $this->stats['removed_by_stage']['temporal'] =
             $this->stats['after_sentiment_filter'] - $this->stats['after_temporal_filter'];
 
-        Log::info("Filtering completed", $this->stats);
+        Log::info('Filtering completed', $this->stats);
 
         return [
             'data' => $data,
-            'stats' => $this->stats
+            'stats' => $this->stats,
         ];
     }
 
@@ -89,18 +89,18 @@ class DataFilteringService
     protected function filterRelevance($data, $query)
     {
         $keywords = $this->extractKeywords($query);
-        
-        return array_filter($data, function($item) use ($keywords) {
+
+        return array_filter($data, function ($item) use ($keywords) {
             $content = strtolower($item['content'] ?? '');
             $author = strtolower($item['author'] ?? '');
-            
+
             // Check if any keyword exists in content or author
             foreach ($keywords as $keyword) {
                 if (str_contains($content, $keyword) || str_contains($author, $keyword)) {
                     return true;
                 }
             }
-            
+
             return false;
         });
     }
@@ -113,12 +113,12 @@ class DataFilteringService
     {
         $unique = [];
         $hashes = [];
-        
+
         foreach ($data as $item) {
             // Create hash dari content untuk detect duplikat
             $content = strtolower(trim($item['content'] ?? ''));
             $hash = md5($content);
-            
+
             // Check similarity dengan existing items
             $isDuplicate = false;
             foreach ($hashes as $existingHash => $existingContent) {
@@ -128,13 +128,13 @@ class DataFilteringService
                     break;
                 }
             }
-            
-            if (!$isDuplicate) {
+
+            if (! $isDuplicate) {
                 $unique[] = $item;
                 $hashes[$hash] = $content;
             }
         }
-        
+
         return $unique;
     }
 
@@ -152,30 +152,30 @@ class DataFilteringService
             '/^(.{1,10})$/u',  // Too short (< 10 chars)
             '/🎁|💰|💵|💸/',  // Spam emoji
         ];
-        
-        return array_filter($data, function($item) use ($spamPatterns) {
+
+        return array_filter($data, function ($item) use ($spamPatterns) {
             $content = $item['content'] ?? '';
-            
+
             // Check spam patterns
             foreach ($spamPatterns as $pattern) {
                 if (preg_match($pattern, $content)) {
                     return false;
                 }
             }
-            
+
             // Check if mostly URLs or hashtags
             $words = str_word_count($content, 0, '0123456789');
             $hashtagCount = substr_count($content, '#');
             if ($hashtagCount > $words * 0.5) { // More than 50% hashtags
                 return false;
             }
-            
+
             // Check bot indicators
             $author = strtolower($item['author'] ?? '');
             if (str_contains($author, 'bot') || str_contains($author, 'auto')) {
                 return false;
             }
-            
+
             return true;
         });
     }
@@ -186,37 +186,37 @@ class DataFilteringService
      */
     protected function filterBySentiment($data)
     {
-        return array_filter($data, function($item) {
+        return array_filter($data, function ($item) {
             $content = $item['content'] ?? '';
-            
+
             // Check for opinion indicators
             $opinionIndicators = [
                 // Positive indicators
                 'love', 'amazing', 'great', 'excellent', 'good', 'best', 'awesome',
                 'suka', 'bagus', 'keren', 'mantap', 'hebat',
                 '❤️', '😍', '🔥', '👍', '✨',
-                
+
                 // Negative indicators
                 'hate', 'bad', 'worst', 'terrible', 'awful', 'disgusting',
                 'benci', 'jelek', 'buruk', 'parah', 'mengecewakan',
                 '😡', '😤', '👎', '💔',
-                
+
                 // Sentiment words
-                'feel', 'think', 'believe', 'rasa', 'pikir', 'menurut'
+                'feel', 'think', 'believe', 'rasa', 'pikir', 'menurut',
             ];
-            
+
             $contentLower = strtolower($content);
             foreach ($opinionIndicators as $indicator) {
                 if (str_contains($contentLower, $indicator)) {
                     return true;
                 }
             }
-            
+
             // Check for exclamation or question marks (indicates emotion/opinion)
             if (preg_match('/[!?]{1,}/', $content)) {
                 return true;
             }
-            
+
             return false;
         });
     }
@@ -228,16 +228,17 @@ class DataFilteringService
     protected function filterTemporal($data, $daysBack = 30)
     {
         $cutoffDate = now()->subDays($daysBack);
-        
-        return array_filter($data, function($item) use ($cutoffDate) {
+
+        return array_filter($data, function ($item) use ($cutoffDate) {
             $createdAt = $item['created_at'] ?? null;
-            
-            if (!$createdAt) {
+
+            if (! $createdAt) {
                 return true; // Keep if no date
             }
-            
+
             try {
                 $postDate = \Carbon\Carbon::parse($createdAt);
+
                 return $postDate->gte($cutoffDate);
             } catch (\Exception $e) {
                 return true; // Keep if date parse fails
@@ -251,11 +252,11 @@ class DataFilteringService
     protected function extractKeywords($query)
     {
         $stopwords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-                      'yang', 'dan', 'atau', 'di', 'ke', 'dari', 'untuk'];
-        
+            'yang', 'dan', 'atau', 'di', 'ke', 'dari', 'untuk'];
+
         $words = preg_split('/\s+/', strtolower($query));
         $keywords = array_diff($words, $stopwords);
-        
+
         return array_values($keywords);
     }
 
@@ -266,17 +267,18 @@ class DataFilteringService
     {
         $len1 = strlen($str1);
         $len2 = strlen($str2);
-        
+
         if ($len1 == 0 || $len2 == 0) {
             return 0;
         }
-        
+
         $distance = levenshtein(
-            substr($str1, 0, 255), 
+            substr($str1, 0, 255),
             substr($str2, 0, 255)
         );
-        
+
         $maxLen = max($len1, $len2);
+
         return 1 - ($distance / $maxLen);
     }
 
@@ -298,7 +300,7 @@ class DataFilteringService
         }
 
         $total = $this->stats['original_count'];
-        
+
         return [
             'total_removed' => $total - $this->stats['after_temporal_filter'],
             'removal_rate' => round((($total - $this->stats['after_temporal_filter']) / $total) * 100, 2),
@@ -309,7 +311,7 @@ class DataFilteringService
                 'noise' => round(($this->stats['removed_by_stage']['noise'] / $total) * 100, 2),
                 'sentiment' => round(($this->stats['removed_by_stage']['sentiment'] / $total) * 100, 2),
                 'temporal' => round(($this->stats['removed_by_stage']['temporal'] / $total) * 100, 2),
-            ]
+            ],
         ];
     }
 }

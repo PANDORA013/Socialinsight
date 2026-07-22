@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 class SentimentService
 {
     protected $apiKey;
+
     protected $model = 'gpt-3.5-turbo';
 
     public function __construct()
@@ -26,19 +27,19 @@ class SentimentService
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->model,
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'You are a sentiment analysis assistant. Analyze the sentiment of the given text and respond with only one word: positive, negative, or neutral.'
+                        'content' => 'You are a sentiment analysis assistant. Analyze the sentiment of the given text and respond with only one word: positive, negative, or neutral.',
                     ],
                     [
                         'role' => 'user',
-                        'content' => $text
-                    ]
+                        'content' => $text,
+                    ],
                 ],
                 'temperature' => 0.3,
                 'max_tokens' => 10,
@@ -46,6 +47,7 @@ class SentimentService
 
             if ($response->successful()) {
                 $sentiment = strtolower(trim($response->json('choices.0.message.content')));
+
                 return [
                     'label' => in_array($sentiment, ['positive', 'negative', 'neutral']) ? $sentiment : 'neutral',
                     'score' => $this->calculateScore($sentiment),
@@ -64,27 +66,27 @@ class SentimentService
     protected function basicSentiment($text)
     {
         $text = strtolower($text);
-        
+
         $positive = ['good', 'great', 'excellent', 'amazing', 'love', 'best', 'awesome', 'fantastic'];
         $negative = ['bad', 'terrible', 'awful', 'hate', 'worst', 'horrible', 'disgusting', 'poor'];
-        
+
         $positiveCount = 0;
         $negativeCount = 0;
-        
+
         foreach ($positive as $word) {
             $positiveCount += substr_count($text, $word);
         }
-        
+
         foreach ($negative as $word) {
             $negativeCount += substr_count($text, $word);
         }
-        
+
         if ($positiveCount > $negativeCount) {
             return ['label' => 'positive', 'score' => 0.7];
         } elseif ($negativeCount > $positiveCount) {
             return ['label' => 'negative', 'score' => 0.3];
         }
-        
+
         return ['label' => 'neutral', 'score' => 0.5];
     }
 

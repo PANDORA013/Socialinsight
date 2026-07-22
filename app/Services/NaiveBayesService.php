@@ -11,9 +11,11 @@ use Illuminate\Support\Facades\Log;
 class NaiveBayesService
 {
     protected $vocabulary = [];
+
     protected $priors = [];
+
     protected $likelihoods = [];
-    
+
     // Training data - bisa diganti dengan data dari database
     protected $trainingData = [
         'positive' => [
@@ -39,7 +41,7 @@ class NaiveBayesService
             'ini adalah produk',
             'sudah diterima hari ini',
             'biasa saja standar',
-        ]
+        ],
     ];
 
     public function __construct()
@@ -63,19 +65,19 @@ class NaiveBayesService
             $classCounts[$class] = count($documents);
             $totalDocs += count($documents);
             $classWords[$class] = [];
-            
+
             foreach ($documents as $doc) {
                 $words = $this->tokenize($doc);
                 $classWords[$class] = array_merge($classWords[$class], $words);
-                
+
                 foreach ($words as $word) {
-                    if (!isset($this->vocabulary[$word])) {
+                    if (! isset($this->vocabulary[$word])) {
                         $this->vocabulary[$word] = 0;
                     }
                     $this->vocabulary[$word]++;
                 }
             }
-            
+
             $classWordCounts[$class] = count($classWords[$class]);
         }
 
@@ -86,10 +88,10 @@ class NaiveBayesService
 
         // Calculate likelihoods P(word|class)
         $vocabularySize = count($this->vocabulary);
-        
+
         foreach ($this->trainingData as $class => $documents) {
             $this->likelihoods[$class] = [];
-            
+
             foreach ($this->vocabulary as $word => $count) {
                 $wordCountInClass = 0;
                 foreach ($classWords[$class] as $w) {
@@ -97,16 +99,16 @@ class NaiveBayesService
                         $wordCountInClass++;
                     }
                 }
-                
+
                 // Laplace smoothing
-                $this->likelihoods[$class][$word] = 
+                $this->likelihoods[$class][$word] =
                     ($wordCountInClass + 1) / ($classWordCounts[$class] + $vocabularySize);
             }
         }
 
         Log::info('Naive Bayes model trained', [
             'vocabulary_size' => $vocabularySize,
-            'classes' => array_keys($this->priors)
+            'classes' => array_keys($this->priors),
         ]);
     }
 
@@ -120,7 +122,7 @@ class NaiveBayesService
 
         foreach ($this->priors as $class => $prior) {
             $score = log($prior);
-            
+
             foreach ($words as $word) {
                 if (isset($this->likelihoods[$class][$word])) {
                     $score += log($this->likelihoods[$class][$word]);
@@ -130,25 +132,25 @@ class NaiveBayesService
                     $score += log(1 / ($vocabularySize + count($this->vocabulary)));
                 }
             }
-            
+
             $scores[$class] = $score;
         }
 
         // Get class with highest score
         arsort($scores);
         $prediction = array_key_first($scores);
-        
+
         // Convert scores to probabilities
         $maxScore = max($scores);
-        $expScores = array_map(fn($s) => exp($s - $maxScore), $scores);
+        $expScores = array_map(fn ($s) => exp($s - $maxScore), $scores);
         $sumExp = array_sum($expScores);
-        $probabilities = array_map(fn($s) => $s / $sumExp, $expScores);
+        $probabilities = array_map(fn ($s) => $s / $sumExp, $expScores);
 
         return [
             'sentiment' => $prediction,
             'confidence' => $probabilities[$prediction],
             'probabilities' => $probabilities,
-            'score' => $this->mapSentimentToScore($prediction)
+            'score' => $this->mapSentimentToScore($prediction),
         ];
     }
 
@@ -158,11 +160,11 @@ class NaiveBayesService
     public function classifyBatch($texts)
     {
         $results = [];
-        
+
         foreach ($texts as $text) {
             $results[] = $this->classify($text);
         }
-        
+
         return $results;
     }
 
@@ -174,21 +176,23 @@ class NaiveBayesService
         $sentiments = [
             'positive' => 0,
             'negative' => 0,
-            'neutral' => 0
+            'neutral' => 0,
         ];
-        
+
         $totalScore = 0;
         $count = 0;
 
         foreach ($data as $item) {
             $content = $item['content'] ?? '';
-            if (empty($content)) continue;
-            
+            if (empty($content)) {
+                continue;
+            }
+
             $result = $this->classify($content);
             $sentiments[$result['sentiment']]++;
             $totalScore += $result['score'];
             $count++;
-            
+
             // Update item with sentiment analysis
             $item['sentiment'] = $result['sentiment'];
             $item['sentiment_score'] = $result['score'];
@@ -206,7 +210,7 @@ class NaiveBayesService
             ],
             'average_score' => round($avgScore, 3),
             'total_analyzed' => $count,
-            'overall_sentiment' => $this->getOverallSentiment($sentiments)
+            'overall_sentiment' => $this->getOverallSentiment($sentiments),
         ];
     }
 
@@ -217,27 +221,27 @@ class NaiveBayesService
     {
         // Convert to lowercase
         $text = strtolower($text);
-        
+
         // Remove URLs
         $text = preg_replace('/https?:\/\/[^\s]+/', '', $text);
-        
+
         // Remove mentions and hashtags symbols (keep the words)
         $text = str_replace(['@', '#'], '', $text);
-        
+
         // Remove special characters except spaces
         $text = preg_replace('/[^a-z0-9\s]/', ' ', $text);
-        
+
         // Split into words
         $words = preg_split('/\s+/', $text);
-        
+
         // Remove stopwords
         $stopwords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'is', 'this',
-                      'yang', 'dan', 'atau', 'di', 'ke', 'dari', 'untuk', 'ini', 'itu', 'dengan'];
-        
-        $words = array_filter($words, function($word) use ($stopwords) {
-            return strlen($word) > 2 && !in_array($word, $stopwords);
+            'yang', 'dan', 'atau', 'di', 'ke', 'dari', 'untuk', 'ini', 'itu', 'dengan'];
+
+        $words = array_filter($words, function ($word) use ($stopwords) {
+            return strlen($word) > 2 && ! in_array($word, $stopwords);
         });
-        
+
         return array_values($words);
     }
 
@@ -246,7 +250,7 @@ class NaiveBayesService
      */
     protected function mapSentimentToScore($sentiment)
     {
-        return match($sentiment) {
+        return match ($sentiment) {
             'positive' => 1.0,
             'negative' => 0.0,
             'neutral' => 0.5,
@@ -260,13 +264,13 @@ class NaiveBayesService
     protected function getOverallSentiment($sentiments)
     {
         $max = max($sentiments);
-        
+
         foreach ($sentiments as $sentiment => $count) {
             if ($count === $max) {
                 return $sentiment;
             }
         }
-        
+
         return 'neutral';
     }
 
@@ -279,7 +283,7 @@ class NaiveBayesService
             'vocabulary_size' => count($this->vocabulary),
             'classes' => array_keys($this->priors),
             'priors' => $this->priors,
-            'training_samples' => array_map('count', $this->trainingData)
+            'training_samples' => array_map('count', $this->trainingData),
         ];
     }
 }
